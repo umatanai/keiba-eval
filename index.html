@@ -3,201 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NC-Modeler Mobile</title>
+    <title>NC-Modeler V2</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        :root { --orange: #ff9800; --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; --blue: #2196f3; --green: #4caf50; --red: #f44336; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 50px; overflow-x: hidden; }
-        .container { padding: 10px; max-width: 500px; margin: auto; }
-        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        h2 { font-size: 0.9rem; margin-top: 0; color: var(--orange); border-bottom: 1px solid #333; padding-bottom: 8px; }
-        .row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+        :root { --orange: #ff9800; --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; }
+        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        h2 { font-size: 0.9rem; margin: 0 0 10px 0; color: var(--orange); border-bottom: 1px solid #333; padding-bottom: 5px; }
+        .row { display: flex; gap: 8px; margin-bottom: 8px; }
         .col { flex: 1; }
         label { display: block; font-size: 0.7rem; color: #888; margin-bottom: 2px; }
-        input, select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #333; background: #2a2a2a; color: #fff; font-size: 0.9rem; box-sizing: border-box; }
-        .origin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 8px; }
-        .origin-btn { padding: 8px; font-size: 0.7rem; background: #333; border: 1px solid #444; color: #fff; border-radius: 4px; text-align: center; cursor: pointer; }
+        input, select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #333; background: #2a2a2a; color: #fff; font-size: 0.9rem; box-sizing: border-box; }
+        #canvas-container { width: 100%; height: 250px; background: #000; border-radius: 10px; margin-bottom: 10px; position: relative; }
+        .origin-selector { display: flex; gap: 10px; }
+        .origin-btn { flex: 1; padding: 12px; background: #333; border-radius: 8px; text-align: center; font-size: 0.8rem; border: 1px solid #444; }
         .origin-btn.active { background: var(--orange); color: #000; font-weight: bold; }
-        #canvas-container { width: 100%; height: 250px; background: #000; border-radius: 8px; margin-bottom: 10px; position: relative; overflow: hidden; }
-        .legend { position: absolute; bottom: 5px; right: 5px; font-size: 0.6rem; color: #aaa; background: rgba(0,0,0,0.5); padding: 3px; border-radius: 3px; }
-        button.add-btn { width: 100%; padding: 12px; background: var(--bg); border: 2px dashed #444; border-radius: 8px; color: #aaa; font-size: 0.9rem; cursor: pointer; margin-top: 5px; }
-        button.add-btn:active { background: #1a1a1a; color: #fff; border-color: #666; }
-        .feature-item { background: #2a2a2a; padding: 10px; border-radius: 6px; margin-bottom: 5px; font-size: 0.8rem; display: flex; justify-content: space-between; }
-        button.next-btn { width: 100%; padding: 16px; background: var(--orange); border: none; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        .add-btn { width: 100%; padding: 12px; background: #444; border: none; border-radius: 8px; color: #fff; margin-top: 10px; font-weight: bold; }
+        .feature-list { margin-top: 10px; font-size: 0.8rem; color: #aaa; border-top: 1px solid #333; padding-top: 5px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="canvas-container">
-        <div class="legend">
-            <span style="color:var(--red)">X</span> / 
-            <span style="color:var(--green)">Y</span> / 
-            <span style="color:var(--blue)">Z</span>
-        </div>
-    </div>
+<div id="canvas-container"></div>
 
-    <div class="card">
-        <h2>1. ワーク (ゴール形状) ⇔ 材料 (ストック)</h2>
-        <div class="row">
-            <div class="col"><label>ワークW (X)</label><input type="number" id="wX" value="100" oninput="updateAll()"></div>
-            <div class="col"><label>ワークL (Y)</label><input type="number" id="wY" value="100" oninput="updateAll()"></div>
-            <div class="col"><label>ワークT (Z)</label><input type="number" id="wZ" value="20" oninput="updateAll()"></div>
-        </div>
-        <div class="row">
-            <div class="col"><label>XY取りしろ (片側)</label><input type="number" id="mXY" value="2" oninput="updateAll()"></div>
-            <div class="col"><label>上面取りしろ</label><input type="number" id="mZ" value="1" oninput="updateAll()"></div>
-        </div>
-        <div id="materialInfo" style="font-size: 0.75rem; color: #aaa; text-align: right;">材料サイズ: 104 x 104 x 21</div>
+<div class="card">
+    <h2>1. ワーク寸法 (最終形状)</h2>
+    <div class="row">
+        <div class="col"><label>幅 X</label><input type="number" id="wX" value="100" oninput="drawAll()"></div>
+        <div class="col"><label>長さ Y</label><input type="number" id="wY" value="100" oninput="drawAll()"></div>
+        <div class="col"><label>厚み Z</label><input type="number" id="wZ" value="20" oninput="drawAll()"></div>
     </div>
+</div>
 
-    <div class="card">
-        <h2>2. 原点選択 (可視化)</h2>
-        <div class="origin-grid">
-            <div class="origin-btn" id="TL" onclick="setOrigin('TL')">左上</div>
-            <div class="origin-btn" id="TC" onclick="setOrigin('TC')">中央上</div>
-            <div class="origin-btn" id="TR" onclick="setOrigin('TR')">右上</div>
-            <div class="origin-btn active" id="BL" onclick="setOrigin('BL')">左下</div>
-            <div class="origin-btn" id="CC" onclick="setOrigin('CC')">中央</div>
-            <div class="origin-btn" id="BR" onclick="setOrigin('BR')">右下</div>
-        </div>
+<div class="card">
+    <h2>2. 素材寸法 (削りしろ)</h2>
+    <div class="row">
+        <div class="col"><label>XY追加量(片側)</label><input type="number" id="mXY" value="2" oninput="drawAll()"></div>
+        <div class="col"><label>上面追加量</label><input type="number" id="mZ" value="1" oninput="drawAll()"></div>
     </div>
+</div>
 
-    <div class="card">
-        <h2>3. フィーチャー追加 (穴・ボス)</h2>
-        <div id="featureList">
-            </div>
-        
-        <div class="row" style="background:#2a2a2a; padding:10px; border-radius:6px; margin-top:5px;">
-            <select id="featType" style="flex:1.5;">
-                <option value="hole">穴 (Hole)</option>
-                <option value="boss">ボス (Boss)</option>
-            </select>
-            <input type="number" id="featX" placeholder="X" style="flex:1;">
-            <input type="number" id="featY" placeholder="Y" style="flex:1;">
-            <input type="number" id="featD" placeholder="D/W" style="flex:1;">
-            <input type="number" id="featZ" placeholder="Z" style="flex:1;">
-        </div>
-        <button class="add-btn" onclick="addFeature()">＋ 数値でフィーチャーを追加</button>
+<div class="card">
+    <h2>3. 原点位置 (G54)</h2>
+    <div class="origin-selector">
+        <div class="origin-btn active" id="btn_CC" onclick="setOrigin('CC')">中央</div>
+        <div class="origin-btn" id="btn_BR" onclick="setOrigin('BR')">右下</div>
     </div>
+</div>
 
-    <button class="next-btn" onclick="alert('次ページへ：ミーリング設定を行います')">次へ (ミーリング設定)</button>
+<div class="card">
+    <h2>4. フィーチャー追加</h2>
+    <div class="row">
+        <select id="fType" style="flex:1.5;"><option value="hole">穴</option><option value="boss">ボス</option></select>
+        <input type="number" id="fX" placeholder="X" style="flex:1;">
+        <input type="number" id="fY" placeholder="Y" style="flex:1;">
+        <input type="number" id="fD" placeholder="径" style="flex:1;">
+        <input type="number" id="fZ" placeholder="深/高" style="flex:1;">
+    </div>
+    <button class="add-btn" onclick="addFeature()">モデルに反映・追加</button>
+    <div id="featureList" class="feature-list"></div>
 </div>
 
 <script>
-    let scene, camera, renderer, workMesh, matMesh, axesHelper;
-    let currentOrigin = 'BL';
-    let features = []; // フィーチャーリスト
+    let scene, camera, renderer, modelGroup;
+    let currentOrigin = 'CC';
+    let features = [];
 
-    // 1. 3D初期化
-    function init3D() {
+    function init() {
         const container = document.getElementById('canvas-container');
         scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
-        camera.position.set(120, 120, 180);
-        camera.lookAt(0, 20, 0); // ワークが画面中央に来るように少し上に
+        camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 1000);
+        camera.position.set(100, 100, 150);
+        camera.lookAt(0, 0, 0);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
         container.appendChild(renderer.domElement);
 
-        const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(10, 20, 15);
+        const light = new THREE.PointLight(0xffffff, 1);
+        light.position.set(50, 100, 50);
         scene.add(light);
         scene.add(new THREE.AmbientLight(0x404040));
 
-        // 原点軸 (可視化: X=赤, Y=緑, Z=青)
-        axesHelper = new THREE.AxesHelper(50);
-        scene.add(axesHelper);
+        // 原点軸 (RGB)
+        scene.add(new THREE.AxesHelper(30));
 
-        updateAll();
+        modelGroup = new THREE.Group();
+        scene.add(modelGroup);
+
+        drawAll();
         animate();
     }
 
-    function animate() {
-        requestAnimationFrame(animate);
-        renderer.render(scene, camera);
-    }
-
-    // 2. 計算 & 3D更新
-    function updateAll() {
-        const wX = parseFloat(document.getElementById('wX').value);
-        const wY = parseFloat(document.getElementById('wY').value);
-        const wZ = parseFloat(document.getElementById('wZ').value);
-        const mXY = parseFloat(document.getElementById('marginXY')?.value || 2); // 簡易化のため一旦固定値も
-        const mZ = parseFloat(document.getElementById('marginZ')?.value || 1);
-        
-        // 材料サイズ計算
-        const matX = wX + (mXY * 2);
-        const matY = wY + (mXY * 2);
-        const matZ = wZ + mZ;
-
-        document.getElementById('materialInfo').innerText = `材料サイズ: ${matX} x ${matY} x ${matZ}`;
-        update3D(wX, wY, wZ, matX, matY, matZ);
-    }
-
-    function update3D(wx, wy, wz, mx, my, mz) {
-        if (workMesh) scene.remove(workMesh);
-        if (matMesh) scene.remove(matMesh);
-
-        // 原点オフセット計算 (G54がどこにあるか)
-        let ox = 0, oy = 0, oz = wz; // 上面原点
-        if(currentOrigin === 'CC') { ox = wx/2; oy = wy/2; }
-        if(currentOrigin === 'BR') { ox = wx; oy = wy/2; } // 簡易化
-
-        // --- ワーク (実線) ---
-        const workGeo = new THREE.BoxGeometry(wx, wz, wy);
-        const workMat = new THREE.MeshPhongMaterial({ color: 0x00ff00, wireframe: true });
-        workMesh = new THREE.Mesh(workGeo, workMat);
-        
-        // モデルを原点(0,0,0)に合わせるための配置
-        workMesh.position.set(wx/2 - ox, wz/2, wy/2 - oy); 
-        scene.add(workMesh);
-
-        // --- 材料 (半透明) ---
-        const matGeo = new THREE.BoxGeometry(mx, mz, my);
-        const matMat = new THREE.MeshPhongMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.2 });
-        matMesh = new THREE.Mesh(matGeo, matMat);
-        // 材料は上面がZ=0より「上面取りしろ」分だけ上になる
-        matMesh.position.set(mx/2 - (ox + mx-wx)/2, mz/2, my/2 - (oy + my-wy)/2);
-        // 簡易化のためワークと同心にする配置(後で修正)
-        matMesh.position.copy(workMesh.position);
-        matMesh.position.y = mz/2; 
-        scene.add(matMesh);
-    }
+    function animate() { requestAnimationFrame(animate); renderer.render(scene, camera); }
 
     function setOrigin(o) {
         currentOrigin = o;
         document.querySelectorAll('.origin-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(o).classList.add('active');
-        updateAll(); // 原点を変えたらモデルを再配置
+        document.getElementById('btn_' + o).classList.add('active');
+        drawAll();
     }
 
-    // 3. フィーチャー追加
     function addFeature() {
-        const type = document.getElementById('featType').value;
-        const x = parseFloat(document.getElementById('featX').value) || 0;
-        const y = parseFloat(document.getElementById('featY').value) || 0;
-        const d = parseFloat(document.getElementById('featD').value) || 10;
-        const z = parseFloat(document.getElementById('featZ').value) || 5;
-
+        const type = document.getElementById('fType').value;
+        const x = parseFloat(document.getElementById('fX').value) || 0;
+        const y = parseFloat(document.getElementById('fY').value) || 0;
+        const d = parseFloat(document.getElementById('fD').value) || 10;
+        const z = parseFloat(document.getElementById('fZ').value) || 5;
         features.push({type, x, y, d, z});
-        updateFeatureList();
-        // ここで3Dモデルにも追加するロジックが必要（次回のブラッシュアップで実装）
+        
+        const list = document.getElementById('featureList');
+        list.innerHTML += `<div>${type === 'hole' ? '穴' : 'ボス'}: X${x} Y${y} D${d} Z${z}</div>`;
+        drawAll();
     }
 
-    function updateFeatureList() {
-        const list = document.getElementById('featureList');
-        list.innerHTML = '';
-        features.forEach((f, i) => {
-            const item = document.createElement('div');
-            item.className = 'feature-item';
-            item.innerHTML = `<span>${f.type.toUpperCase()} - X${f.x} Y${f.y} D${f.d} Z${f.z}</span>`;
-            list.appendChild(item);
+    function drawAll() {
+        while(modelGroup.children.length > 0) modelGroup.remove(modelGroup.children[0]);
+
+        const wx = parseFloat(document.getElementById('wX').value);
+        const wy = parseFloat(document.getElementById('wY').value);
+        const wz = parseFloat(document.getElementById('wZ').value);
+        const mxy = parseFloat(document.getElementById('mXY').value);
+        const mz = parseFloat(document.getElementById('mZ').value);
+
+        // オフセット計算
+        let ox = (currentOrigin === 'CC') ? 0 : -wx;
+        let oy = (currentOrigin === 'CC') ? 0 : 0; // 右下基準: Xはマイナスへ、Yはプラス側へ広がる想定
+
+        // ワーク本体
+        const workGeo = new THREE.BoxGeometry(wx, wz, wy);
+        const workMat = new THREE.MeshPhongMaterial({ color: 0x444444, wireframe: false });
+        const work = new THREE.Mesh(workGeo, workMat);
+        work.position.set(wx/2 + ox, -wz/2, wy/2 + oy);
+        modelGroup.add(work);
+
+        // 素材(ストック)
+        const stockGeo = new THREE.BoxGeometry(wx + mxy*2, wz + mz, wy + mxy*2);
+        const stockMat = new THREE.MeshPhongMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.2 });
+        const stock = new THREE.Mesh(stockGeo, stockMat);
+        stock.position.set(wx/2 + ox, - (wz+mz)/2 + mz, wy/2 + oy);
+        modelGroup.add(stock);
+
+        // フィーチャー(穴・ボス)の描画
+        features.forEach(f => {
+            const geo = new THREE.CylinderGeometry(f.d/2, f.d/2, f.z, 32);
+            const col = (f.type === 'hole') ? 0xff0000 : 0x00ff00;
+            const mat = new THREE.MeshPhongMaterial({ color: col });
+            const mesh = new THREE.Mesh(geo, mat);
+            
+            // 穴は沈める、ボスは浮かせる
+            const zPos = (f.type === 'hole') ? -f.z/2 : f.z/2;
+            mesh.position.set(f.x + ox, zPos, f.y + oy);
+            modelGroup.add(mesh);
         });
     }
 
-    window.onload = init3D;
+    window.onload = init;
 </script>
 </body>
 </html>
+
