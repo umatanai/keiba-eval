@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NC-Maker Mobile</title>
+    <style>
+        body { font-family: sans-serif; background: #1a1a1a; color: #eee; margin: 0; padding: 15px; }
+        .card { background: #2a2a2a; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        h2 { font-size: 1.1rem; margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 5px; color: #ff9800; }
+        .input-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.85rem; margin-bottom: 4px; color: #bbb; }
+        input, select { width: 100%; padding: 12px; border-radius: 5px; border: 1px solid #444; background: #333; color: #fff; font-size: 1rem; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #ff9800; border: none; border-radius: 8px; color: #000; font-weight: bold; font-size: 1.1rem; cursor: pointer; }
+        button:active { background: #e68a00; }
+        pre { background: #000; color: #00ff00; padding: 10px; border-radius: 5px; overflow-x: auto; font-family: monospace; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>1. 素材設定 (G54)</h2>
+        <div class="input-group">
+            <label>素材幅 X (mm)</label>
+            <input type="number" id="workX" value="100">
+        </div>
+        <div class="input-group">
+            <label>素材長さ Y (mm)</label>
+            <input type="number" id="workY" value="100">
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>2. 加工条件（自動提案ベース）</h2>
+        <div class="input-group">
+            <label>ワーク材質</label>
+            <select id="material" onchange="updateConditions()">
+                <option value="aluminum">アルミ (Vc=200)</option>
+                <option value="steel">鋼 (Vc=100)</option>
+                <option value="sus">ステンレス (Vc=60)</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>工具径 D (mm)</label>
+            <input type="number" id="toolD" value="80" onchange="updateConditions()">
+        </div>
+        <div class="grid" style="display: flex; gap: 10px;">
+            <div class="input-group" style="flex: 1;">
+                <label>回転数 S</label>
+                <input type="number" id="speedS">
+            </div>
+            <div class="input-group" style="flex: 1;">
+                <label>送り F</label>
+                <input type="number" id="feedF">
+            </div>
+        </div>
+    </div>
+
+    <button onclick="generateNC()">NCプログラム生成</button>
+
+    <div class="card" style="margin-top: 20px;">
+        <h2>出力結果</h2>
+        <pre id="output">ここにコードが表示されます</pre>
+    </div>
+
+    <script>
+        // 加工条件の自動計算ロジック
+        function updateConditions() {
+            const material = document.getElementById('material').value;
+            const d = parseFloat(document.getElementById('toolD').value);
+            let vc = 100;
+            let fz = 0.1;
+
+            if (material === 'aluminum') { vc = 250; fz = 0.15; }
+            if (material === 'sus') { vc = 60; fz = 0.05; }
+
+            const s = Math.round((1000 * vc) / (Math.PI * d));
+            const f = Math.round(fz * 6 * s); // 6枚刃と仮定
+
+            document.getElementById('speedS').value = s;
+            document.getElementById('feedF').value = f;
+        }
+
+        // NCコード生成ロジック
+        function generateNC() {
+            const s = document.getElementById('speedS').value;
+            const f = document.getElementById('feedF').value;
+            
+            let nc = "O1234 (GENERATED NC)\n";
+            nc += "M98P8120 (TOOL CHANGE M6)\n"; // ユーザー指定のM6マクロ
+            nc += "G90 G54 G00 X-20. Y-20.\n";
+            nc += `S${s} M03\n`;
+            nc += "G43 Z50. H01\n";
+            nc += "Z5.\n";
+            nc += `G01 Z0. F${Math.round(f/2)}\n`;
+            nc += `X120. F${f}\n`;
+            nc += "G00 Z100.\n";
+            nc += "M30\n%";
+
+            document.getElementById('output').innerText = nc;
+        }
+
+        // 初期計算
+        updateConditions();
+    </script>
+</body>
+</html>
