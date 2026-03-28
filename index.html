@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NC-Modeler V5 - Origin Fix</title>
+    <title>NC-Modeler V6</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         :root { --orange: #ff9800; --bg: #0b0b0b; --card: #1a1a1a; --text: #eee; --red: #ff4444; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         #view-container { position: sticky; top: 0; width: 100%; height: 45vh; background: #000; z-index: 10; border-bottom: 2px solid #333; }
-        #settings-container { flex: 1; overflow-y: auto; padding: 15px; box-sizing: border-box; -webkit-overflow-scrolling: touch; }
+        #settings-container { flex: 1; overflow-y: auto; padding: 15px; box-sizing: border-box; }
         .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; }
         h2 { font-size: 0.8rem; margin: 0 0 12px 0; color: var(--orange); border-bottom: 1px solid #444; padding-bottom: 6px; }
         .row { display: flex; gap: 8px; margin-bottom: 10px; }
@@ -21,7 +21,11 @@
         .origin-btn { flex: 1; padding: 12px; background: #333; border-radius: 8px; text-align: center; font-size: 0.9rem; border: 1px solid #444; cursor: pointer; }
         .origin-btn.active { background: var(--orange); color: #000; font-weight: bold; border-color: var(--orange); }
         .add-btn { width: 100%; padding: 15px; background: var(--orange); border: none; border-radius: 8px; color: #000; font-weight: bold; margin-top: 5px; cursor: pointer; }
-        .feat-item { display: flex; justify-content: space-between; align-items: center; background: #252525; padding: 10px 12px; border-radius: 6px; margin-top: 8px; font-size: 0.85rem; border-left: 4px solid var(--orange); }
+        
+        /* 個別設定用スタイル */
+        .feat-item { background: #252525; padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--orange); }
+        .feat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.85rem; }
+        .feat-params { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #1a1a1a; padding: 8px; border-radius: 4px; }
         .del-btn { background: var(--red); color: white; border: none; border-radius: 4px; padding: 6px 10px; cursor: pointer; }
         .calc-box { background: #001a00; padding: 12px; border-radius: 6px; border: 1px solid #004400; margin-top: 10px; font-family: monospace; font-size: 0.75rem; color: #00ff00; }
     </style>
@@ -56,21 +60,21 @@
     <div class="card">
         <h2>3. 原点位置 (G54)</h2>
         <div class="origin-selector">
-            <div class="origin-btn active" id="btn_CC" onclick="setOrigin('CC')">中央</div>
-            <div class="origin-btn" id="btn_BR" onclick="setOrigin('BR')">右下</div>
+            <div class="origin-btn" id="btn_CC" onclick="setOrigin('CC')">中央</div>
+            <div class="origin-btn active" id="btn_BR" onclick="setOrigin('BR')">右下</div>
         </div>
     </div>
 
     <div class="card">
-        <h2>4. 形状追加 (Input coordinates from G54)</h2>
+        <h2>4. 形状追加</h2>
         <div class="row">
             <select id="fType" style="flex:1.5;"><option value="hole">穴</option><option value="boss">ボス</option></select>
-            <input type="number" id="fX" placeholder="X" style="flex:1;">
-            <input type="number" id="fY" placeholder="Y" style="flex:1;">
+            <input type="number" id="fX" placeholder="X座標" style="flex:1;">
+            <input type="number" id="fY" placeholder="Y座標" style="flex:1;">
         </div>
         <div class="row">
-            <input type="number" id="fD" placeholder="Φ" style="flex:1;">
-            <input type="number" id="fZ" placeholder="深" style="flex:1;">
+            <input type="number" id="fD" placeholder="径Φ" style="flex:1;">
+            <input type="number" id="fZ" placeholder="深/高" style="flex:1;">
         </div>
         <button class="add-btn" onclick="addFeature()">追加</button>
         <div id="featureList"></div>
@@ -79,14 +83,14 @@
 
 <script>
     let scene, camera, renderer, controls, modelGroup;
-    let currentOrigin = 'CC';
+    let currentOrigin = 'BR';
     let features = [];
 
     function init() {
         const container = document.getElementById('view-container');
         scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 5000);
-        camera.position.set(200, 200, 200);
+        camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 3000);
+        camera.position.set(180, 180, 180);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
@@ -98,7 +102,7 @@
 
         scene.add(new THREE.AmbientLight(0xaaaaaa, 0.6));
         const sun = new THREE.DirectionalLight(0xffffff, 0.8);
-        sun.position.set(100, 300, 100);
+        sun.position.set(100, 200, 100);
         scene.add(sun);
 
         modelGroup = new THREE.Group();
@@ -122,13 +126,27 @@
     }
 
     function addFeature() {
-        const type = document.getElementById('fType').value;
-        const x = parseFloat(document.getElementById('fX').value) || 0;
-        const y = parseFloat(document.getElementById('fY').value) || 0;
-        const d = parseFloat(document.getElementById('fD').value) || 10;
-        const z = parseFloat(document.getElementById('fZ').value) || 5;
-        features.push({ type, x, y, d, z, id: Date.now() });
+        const f = {
+            id: Date.now(),
+            type: document.getElementById('fType').value,
+            x: parseFloat(document.getElementById('fX').value) || 0,
+            y: parseFloat(document.getElementById('fY').value) || 0,
+            d: parseFloat(document.getElementById('fD').value) || 10,
+            z: parseFloat(document.getElementById('fZ').value) || 5,
+            // パス用追加パラメータ
+            toolD: 10,
+            stepZ: 2,
+            feed: 500,
+            speed: 2000
+        };
+        features.push(f);
         updateFeatureList();
+        draw();
+    }
+
+    function updateParam(id, key, val) {
+        const f = features.find(feat => feat.id === id);
+        if (f) f[key] = parseFloat(val);
         draw();
     }
 
@@ -142,8 +160,16 @@
         const list = document.getElementById('featureList');
         list.innerHTML = features.map(f => `
             <div class="feat-item">
-                <span><b>${f.type === 'hole' ? '穴' : 'ボス'}</b> (X${f.x}, Y${f.y}, Φ${f.d})</span>
-                <button class="del-btn" onclick="removeFeature(${f.id})">削除</button>
+                <div class="feat-header">
+                    <span><b>${f.type === 'hole' ? '穴' : 'ボス'}</b> (X${f.x}, Y${f.y})</span>
+                    <button class="del-btn" onclick="removeFeature(${f.id})">削除</button>
+                </div>
+                <div class="feat-params">
+                    <div><label>工具径Φ</label><input type="number" value="${f.toolD}" oninput="updateParam(${f.id}, 'toolD', this.value)"></div>
+                    <div><label>切込深さ</label><input type="number" value="${f.stepZ}" oninput="updateParam(${f.id}, 'stepZ', this.value)"></div>
+                    <div><label>送りF</label><input type="number" value="${f.feed}" oninput="updateParam(${f.id}, 'feed', this.value)"></div>
+                    <div><label>回転数S</label><input type="number" value="${f.speed}" oninput="updateParam(${f.id}, 'speed', this.value)"></div>
+                </div>
             </div>
         `).join('');
     }
@@ -151,11 +177,9 @@
     function drawOriginMark() {
         const group = new THREE.Group();
         const mat = new THREE.LineBasicMaterial({ color: 0xffffff });
-        const size = 60;
-        // 十字 (G54 0点)
+        const size = 50;
         group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-size,0,0), new THREE.Vector3(size,0,0)]), mat));
         group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,-size), new THREE.Vector3(0,0,size)]), mat));
-        // リング
         const ring = new THREE.Mesh(new THREE.TorusGeometry(5, 0.4, 8, 32), new THREE.MeshBasicMaterial({color:0xffffff}));
         ring.rotation.x = Math.PI/2;
         group.add(ring);
@@ -174,51 +198,52 @@
         const mz_top = parseFloat(document.getElementById('mZ_top').value);
         const mz_total = parseFloat(document.getElementById('mZ_total').value);
 
-        document.getElementById('calcInfo').innerHTML = `底面残り: ${(mz_total - wz - mz_top).toFixed(2)} mm`;
+        document.getElementById('calcInfo').innerHTML = `底面残り(クランプ代): ${(mz_total - wz - mz_top).toFixed(2)} mm`;
 
-        // --- ワーク配置ロジック (ここが修正の核心) ---
-        let workPosX, workPosZ;
+        // 前回のワーク配置ロジックを維持
+        let workPosX = (currentOrigin === 'CC') ? 0 : -wx / 2;
+        let workPosZ = (currentOrigin === 'CC') ? 0 : -wy / 2;
 
-        if (currentOrigin === 'CC') {
-            // 中央：中心が(0,0)
-            workPosX = 0;
-            workPosZ = 0;
-        } else {
-            // 右下(BR)：原点(0,0)に対して、ワークは左(X-)、奥(Y+)に広がる
-            // Three.jsのZ軸(マイナス)が現場のYプラス(奥)
-            workPosX = -wx / 2; // 原点から左に全幅の半分ずらす
-            workPosZ = -wy / 2; // 原点から奥に全長の半分ずらす
-        }
-
-        // ワーク本体
-        const work = new THREE.Mesh(
-            new THREE.BoxGeometry(wx, wz, wy),
-            new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.7 })
-        );
-        work.position.set(workPosX, -wz/2, workPosZ); 
+        const work = new THREE.Mesh(new THREE.BoxGeometry(wx, wz, wy), new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.7 }));
+        work.position.set(workPosX, -wz/2, workPosZ);
         modelGroup.add(work);
 
-        // 素材
-        const stock = new THREE.Mesh(
-            new THREE.BoxGeometry(mx, mz_total, my),
-            new THREE.MeshBasicMaterial({ color: 0x888888, wireframe: true })
-        );
+        const stock = new THREE.Mesh(new THREE.BoxGeometry(mx, mz_total, my), new THREE.MeshBasicMaterial({ color: 0x888888, wireframe: true }));
         stock.position.set(workPosX, -(wz + mz_top) + mz_total/2, workPosZ);
         modelGroup.add(stock);
 
-        // --- フィーチャーの配置 (現場座標系をThree.jsへ変換) ---
         features.forEach(f => {
+            // 形状の描画
             const geo = new THREE.CylinderGeometry(f.d/2, f.d/2, f.z, 32);
             const isHole = f.type === 'hole';
-            const mat = new THREE.MeshPhongMaterial({ color: isHole ? 0xff4444 : 0x44ff44 });
+            const mat = new THREE.MeshPhongMaterial({ color: isHole ? 0xff4444 : 0x44ff44, transparent: true, opacity: 0.5 });
             const mesh = new THREE.Mesh(geo, mat);
-            
-            // 現場のX = そのままX
-            // 現場のYプラス(奥) = Three.jsのZマイナス(奥)
-            const yDepth = isHole ? -f.z/2 : f.z/2;
-            mesh.position.set(f.x, yDepth, -f.y); 
-            
+            mesh.position.set(f.x, (isHole ? -f.z/2 : f.z/2), -f.y); 
             modelGroup.add(mesh);
+
+            // パスの計算と描画（黄色い線）
+            const pathPoints = [];
+            const r = (f.d - f.toolD) / 2;
+            
+            pathPoints.push(new THREE.Vector3(f.x, 10, -f.y)); // アプローチ
+            
+            if (r <= 0) { // 工具径が穴径以上（ドリル送り）
+                for(let z=0; z >= -f.z; z -= f.stepZ) {
+                    pathPoints.push(new THREE.Vector3(f.x, z, -f.y));
+                }
+                pathPoints.push(new THREE.Vector3(f.x, -f.z, -f.y));
+            } else { // ヘリカル風
+                for(let z=0; z >= -f.z; z -= 0.5) {
+                    const angle = z * 2;
+                    pathPoints.push(new THREE.Vector3(f.x + Math.cos(angle)*r, z, -f.y + Math.sin(angle)*r));
+                }
+                for(let a=0; a<=Math.PI*2; a+=0.2) { // 底面一周
+                    pathPoints.push(new THREE.Vector3(f.x + Math.cos(a)*r, -f.z, -f.y + Math.sin(a)*r));
+                }
+            }
+            const pathGeo = new THREE.BufferGeometry().setFromPoints(pathPoints);
+            const pathLine = new THREE.Line(pathGeo, new THREE.LineBasicMaterial({ color: 0xffff00 }));
+            modelGroup.add(pathLine);
         });
     }
 
