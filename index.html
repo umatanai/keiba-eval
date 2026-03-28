@@ -3,31 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NC-Modeler V6</title>
+    <title>NC-Modeler V7 - Professional Workflow</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
-        :root { --orange: #ff9800; --bg: #0b0b0b; --card: #1a1a1a; --text: #eee; --red: #ff4444; }
+        :root { --orange: #ff9800; --bg: #0b0b0b; --card: #1a1a1a; --text: #eee; --red: #ff4444; --blue: #2196f3; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        #view-container { position: sticky; top: 0; width: 100%; height: 45vh; background: #000; z-index: 10; border-bottom: 2px solid #333; }
-        #settings-container { flex: 1; overflow-y: auto; padding: 15px; box-sizing: border-box; }
+        #view-container { width: 100%; height: 40vh; background: #000; border-bottom: 2px solid #333; }
+        #settings-container { flex: 1; overflow-y: auto; padding: 15px; }
         .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; }
-        h2 { font-size: 0.8rem; margin: 0 0 12px 0; color: var(--orange); border-bottom: 1px solid #444; padding-bottom: 6px; }
+        h2 { font-size: 0.85rem; margin: 0 0 12px 0; color: var(--orange); border-bottom: 1px solid #444; padding-bottom: 6px; }
         .row { display: flex; gap: 8px; margin-bottom: 10px; }
         .col { flex: 1; }
         label { display: block; font-size: 0.65rem; color: #888; margin-bottom: 4px; }
-        input, select { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #333; background: #2a2a2a; color: #fff; font-size: 1rem; box-sizing: border-box; outline: none; }
-        .origin-selector { display: flex; gap: 10px; }
-        .origin-btn { flex: 1; padding: 12px; background: #333; border-radius: 8px; text-align: center; font-size: 0.9rem; border: 1px solid #444; cursor: pointer; }
-        .origin-btn.active { background: var(--orange); color: #000; font-weight: bold; border-color: var(--orange); }
-        .add-btn { width: 100%; padding: 15px; background: var(--orange); border: none; border-radius: 8px; color: #000; font-weight: bold; margin-top: 5px; cursor: pointer; }
-        
-        /* 個別設定用スタイル */
-        .feat-item { background: #252525; padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--orange); }
-        .feat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.85rem; }
-        .feat-params { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #1a1a1a; padding: 8px; border-radius: 4px; }
-        .del-btn { background: var(--red); color: white; border: none; border-radius: 4px; padding: 6px 10px; cursor: pointer; }
-        .calc-box { background: #001a00; padding: 12px; border-radius: 6px; border: 1px solid #004400; margin-top: 10px; font-family: monospace; font-size: 0.75rem; color: #00ff00; }
+        input, select { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #333; background: #2a2a2a; color: #fff; font-size: 0.9rem; box-sizing: border-box; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        .btn-add { background: var(--orange); color: #000; }
+        .btn-proc { background: var(--blue); color: #fff; }
+        .feat-item { background: #252525; padding: 10px; border-radius: 8px; margin-top: 8px; border-left: 4px solid var(--orange); font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
+        .proc-item { background: #1e2a38; padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--blue); }
+        .del-btn { background: var(--red); color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; }
+        table { width: 100%; font-size: 0.75rem; border-collapse: collapse; margin-top: 8px; }
+        th { text-align: left; color: #888; padding-bottom: 4px; }
     </style>
 </head>
 <body>
@@ -35,71 +32,85 @@
 <div id="view-container"></div>
 
 <div id="settings-container">
+    
     <div class="card">
-        <h2>1. ワーク完成寸法</h2>
+        <h2>🛠 工具ライブラリ (頻用工具)</h2>
+        <table id="toolTable">
+            <thead><tr><th>No</th><th>工具名</th><th>径Φ</th><th>削除</th></tr></thead>
+            <tbody id="toolListBody"></tbody>
+        </table>
+        <div class="row" style="margin-top:10px;">
+            <input type="text" id="newToolName" placeholder="EM10" style="flex:2;">
+            <input type="number" id="newToolD" placeholder="径" style="flex:1;">
+            <button class="btn btn-add" style="flex:1; margin:0;" onclick="addTool()">登録</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>1. 形状設計 (Design)</h2>
         <div class="row">
             <div class="col"><label>幅 X</label><input type="number" id="wX" value="100" oninput="draw()"></div>
             <div class="col"><label>長さ Y</label><input type="number" id="wY" value="100" oninput="draw()"></div>
             <div class="col"><label>厚み Z</label><input type="number" id="wZ" value="20" oninput="draw()"></div>
         </div>
+        <div class="row">
+            <select id="fType" style="flex:1.5;"><option value="hole">穴</option><option value="boss">ボス</option></select>
+            <input type="number" id="fX" placeholder="X" style="flex:1;">
+            <input type="number" id="fY" placeholder="Y" style="flex:1;">
+            <input type="number" id="fD" placeholder="Φ" style="flex:1;">
+            <input type="number" id="fZ" placeholder="深" style="flex:1;">
+        </div>
+        <button class="btn btn-add" onclick="addFeature()">形状を追加</button>
+        <div id="featureList"></div>
     </div>
 
     <div class="card">
-        <h2>2. 素材寸法</h2>
+        <h2>2. 材料設定 (Stock)</h2>
         <div class="row">
             <div class="col"><label>素材 X</label><input type="number" id="mX" value="105" oninput="draw()"></div>
             <div class="col"><label>素材 Y</label><input type="number" id="mY" value="105" oninput="draw()"></div>
         </div>
         <div class="row">
-            <div class="col"><label>上面しろ</label><input type="number" id="mZ_top" value="1" oninput="draw()"></div>
-            <div class="col"><label>素材全厚</label><input type="number" id="mZ_total" value="25" oninput="draw()"></div>
-        </div>
-        <div id="calcInfo" class="calc-box"></div>
-    </div>
-
-    <div class="card">
-        <h2>3. 原点位置 (G54)</h2>
-        <div class="origin-selector">
-            <div class="origin-btn" id="btn_CC" onclick="setOrigin('CC')">中央</div>
-            <div class="origin-btn active" id="btn_BR" onclick="setOrigin('BR')">右下</div>
+            <div class="col"><label>上面しろ</label><input type="number" id="mZ_top" value="4" oninput="draw()"></div>
+            <div class="col"><label>素材全厚</label><input type="number" id="mZ_total" value="30" oninput="draw()"></div>
         </div>
     </div>
 
     <div class="card">
-        <h2>4. 形状追加</h2>
+        <h2>3. 加工工程 (CAM)</h2>
         <div class="row">
-            <select id="fType" style="flex:1.5;"><option value="hole">穴</option><option value="boss">ボス</option></select>
-            <input type="number" id="fX" placeholder="X座標" style="flex:1;">
-            <input type="number" id="fY" placeholder="Y座標" style="flex:1;">
+            <select id="procType" style="flex:1.5;">
+                <option value="face">上面フェイス加工</option>
+                <option value="hole_proc">穴あけ加工</option>
+            </select>
+            <select id="toolSelect" style="flex:1.5;"></select>
+            <button class="btn btn-proc" style="flex:1; margin:0;" onclick="addProcess()">工程追加</button>
         </div>
-        <div class="row">
-            <input type="number" id="fD" placeholder="径Φ" style="flex:1;">
-            <input type="number" id="fZ" placeholder="深/高" style="flex:1;">
-        </div>
-        <button class="add-btn" onclick="addFeature()">追加</button>
-        <div id="featureList"></div>
+        <div id="processList"></div>
     </div>
+
 </div>
 
 <script>
     let scene, camera, renderer, controls, modelGroup;
-    let currentOrigin = 'BR';
     let features = [];
+    let processes = [];
+    let tools = [
+        { id: 1, name: "FaceMill 80", d: 80 },
+        { id: 2, name: "EndMill 10", d: 10 },
+        { id: 3, name: "Drill 6.8", d: 6.8 }
+    ];
 
     function init() {
         const container = document.getElementById('view-container');
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 3000);
-        camera.position.set(180, 180, 180);
-
+        camera.position.set(200, 200, 200);
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(renderer.domElement);
-
         controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-
+        
         scene.add(new THREE.AmbientLight(0xaaaaaa, 0.6));
         const sun = new THREE.DirectionalLight(0xffffff, 0.8);
         sun.position.set(100, 200, 100);
@@ -108,88 +119,88 @@
         modelGroup = new THREE.Group();
         scene.add(modelGroup);
 
+        updateToolUI();
         draw();
         animate();
     }
 
-    function animate() {
-        requestAnimationFrame(animate);
-        controls.update();
-        renderer.render(scene, camera);
-    }
+    function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
 
-    function setOrigin(o) {
-        currentOrigin = o;
-        document.querySelectorAll('.origin-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('btn_' + o).classList.add('active');
-        draw();
+    // --- 工具管理 ---
+    function addTool() {
+        const name = document.getElementById('newToolName').value;
+        const d = parseFloat(document.getElementById('newToolD').value);
+        if(!name || isNaN(d)) return;
+        tools.push({ id: Date.now(), name, d });
+        updateToolUI();
     }
+    function updateToolUI() {
+        const body = document.getElementById('toolListBody');
+        const select = document.getElementById('toolSelect');
+        body.innerHTML = tools.map(t => `<tr><td>${t.id.toString().slice(-3)}</td><td>${t.name}</td><td>${t.d}</td><td><button class="del-btn" onclick="removeTool(${t.id})">×</button></td></tr>`).join('');
+        select.innerHTML = tools.map(t => `<option value="${t.id}">${t.name} (Φ${t.d})</option>`).join('');
+    }
+    function removeTool(id) { tools = tools.filter(t => t.id !== id); updateToolUI(); }
 
+    // --- 形状管理 ---
     function addFeature() {
-        const f = {
+        features.push({
             id: Date.now(),
             type: document.getElementById('fType').value,
             x: parseFloat(document.getElementById('fX').value) || 0,
             y: parseFloat(document.getElementById('fY').value) || 0,
             d: parseFloat(document.getElementById('fD').value) || 10,
-            z: parseFloat(document.getElementById('fZ').value) || 5,
-            // パス用追加パラメータ
-            toolD: 10,
-            stepZ: 2,
+            z: parseFloat(document.getElementById('fZ').value) || 5
+        });
+        updateFeatureUI();
+        draw();
+    }
+    function updateFeatureUI() {
+        document.getElementById('featureList').innerHTML = features.map(f => `<div class="feat-item"><span>${f.type.toUpperCase()}: X${f.x} Y${f.y} Φ${f.d}</span><button class="del-btn" onclick="removeFeature(${f.id})">削除</button></div>`).join('');
+    }
+    function removeFeature(id) { features = features.filter(f => f.id !== id); updateFeatureUI(); draw(); }
+
+    // --- 工程管理 ---
+    function addProcess() {
+        const type = document.getElementById('procType').value;
+        const toolId = parseInt(document.getElementById('toolSelect').value);
+        const tool = tools.find(t => t.id === toolId);
+        processes.push({
+            id: Date.now(),
+            type,
+            toolName: tool.name,
+            toolD: tool.d,
             feed: 500,
-            speed: 2000
-        };
-        features.push(f);
-        updateFeatureList();
+            stepZ: (type === 'face' ? 1.0 : 5.0)
+        });
+        updateProcessUI();
         draw();
     }
-
-    function updateParam(id, key, val) {
-        const f = features.find(feat => feat.id === id);
-        if (f) f[key] = parseFloat(val);
-        draw();
-    }
-
-    function removeFeature(id) {
-        features = features.filter(f => f.id !== id);
-        updateFeatureList();
-        draw();
-    }
-
-    function updateFeatureList() {
-        const list = document.getElementById('featureList');
-        list.innerHTML = features.map(f => `
-            <div class="feat-item">
-                <div class="feat-header">
-                    <span><b>${f.type === 'hole' ? '穴' : 'ボス'}</b> (X${f.x}, Y${f.y})</span>
-                    <button class="del-btn" onclick="removeFeature(${f.id})">削除</button>
+    function updateProcessUI() {
+        document.getElementById('processList').innerHTML = processes.map(p => `
+            <div class="proc-item">
+                <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:0.8rem; color:var(--blue);">
+                    <span>${p.type === 'face' ? '上面削り' : '穴加工'} [${p.toolName}]</span>
+                    <button class="del-btn" onclick="removeProcess(${p.id})">削除</button>
                 </div>
-                <div class="feat-params">
-                    <div><label>工具径Φ</label><input type="number" value="${f.toolD}" oninput="updateParam(${f.id}, 'toolD', this.value)"></div>
-                    <div><label>切込深さ</label><input type="number" value="${f.stepZ}" oninput="updateParam(${f.id}, 'stepZ', this.value)"></div>
-                    <div><label>送りF</label><input type="number" value="${f.feed}" oninput="updateParam(${f.id}, 'feed', this.value)"></div>
-                    <div><label>回転数S</label><input type="number" value="${f.speed}" oninput="updateParam(${f.id}, 'speed', this.value)"></div>
+                <div class="row" style="margin-top:8px;">
+                    <div class="col"><label>切込(Ap)</label><input type="number" value="${p.stepZ}" oninput="updateProcParam(${p.id}, 'stepZ', this.value)"></div>
+                    <div class="col"><label>送り(F)</label><input type="number" value="${p.feed}" oninput="updateProcParam(${p.id}, 'feed', this.value)"></div>
                 </div>
             </div>
         `).join('');
     }
-
-    function drawOriginMark() {
-        const group = new THREE.Group();
-        const mat = new THREE.LineBasicMaterial({ color: 0xffffff });
-        const size = 50;
-        group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-size,0,0), new THREE.Vector3(size,0,0)]), mat));
-        group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,-size), new THREE.Vector3(0,0,size)]), mat));
-        const ring = new THREE.Mesh(new THREE.TorusGeometry(5, 0.4, 8, 32), new THREE.MeshBasicMaterial({color:0xffffff}));
-        ring.rotation.x = Math.PI/2;
-        group.add(ring);
-        modelGroup.add(group);
+    function updateProcParam(id, key, val) {
+        const p = processes.find(proc => proc.id === id);
+        if(p) p[key] = parseFloat(val);
+        draw();
     }
+    function removeProcess(id) { processes = processes.filter(p => p.id !== id); updateProcessUI(); draw(); }
 
+    // --- 描画ロジック ---
     function draw() {
         while(modelGroup.children.length > 0) modelGroup.remove(modelGroup.children[0]);
-        drawOriginMark();
-
+        
         const wx = parseFloat(document.getElementById('wX').value);
         const wy = parseFloat(document.getElementById('wY').value);
         const wz = parseFloat(document.getElementById('wZ').value);
@@ -198,52 +209,50 @@
         const mz_top = parseFloat(document.getElementById('mZ_top').value);
         const mz_total = parseFloat(document.getElementById('mZ_total').value);
 
-        document.getElementById('calcInfo').innerHTML = `底面残り(クランプ代): ${(mz_total - wz - mz_top).toFixed(2)} mm`;
+        // 原点ロジック（右下BR固定）
+        let workPosX = -wx / 2;
+        let workPosZ = -wy / 2;
 
-        // 前回のワーク配置ロジックを維持
-        let workPosX = (currentOrigin === 'CC') ? 0 : -wx / 2;
-        let workPosZ = (currentOrigin === 'CC') ? 0 : -wy / 2;
-
-        const work = new THREE.Mesh(new THREE.BoxGeometry(wx, wz, wy), new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.7 }));
+        // ワーク本体
+        const work = new THREE.Mesh(new THREE.BoxGeometry(wx, wz, wy), new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.6 }));
         work.position.set(workPosX, -wz/2, workPosZ);
         modelGroup.add(work);
 
+        // 素材
         const stock = new THREE.Mesh(new THREE.BoxGeometry(mx, mz_total, my), new THREE.MeshBasicMaterial({ color: 0x888888, wireframe: true }));
         stock.position.set(workPosX, -(wz + mz_top) + mz_total/2, workPosZ);
         modelGroup.add(stock);
 
+        // 形状
         features.forEach(f => {
-            // 形状の描画
             const geo = new THREE.CylinderGeometry(f.d/2, f.d/2, f.z, 32);
-            const isHole = f.type === 'hole';
-            const mat = new THREE.MeshPhongMaterial({ color: isHole ? 0xff4444 : 0x44ff44, transparent: true, opacity: 0.5 });
-            const mesh = new THREE.Mesh(geo, mat);
-            mesh.position.set(f.x, (isHole ? -f.z/2 : f.z/2), -f.y); 
+            const mesh = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color: f.type==='hole'?0xff4444:0x44ff44, transparent:true, opacity:0.5 }));
+            mesh.position.set(f.x, (f.type==='hole'?-f.z/2:f.z/2), -f.y);
             modelGroup.add(mesh);
+        });
 
-            // パスの計算と描画（黄色い線）
-            const pathPoints = [];
-            const r = (f.d - f.toolD) / 2;
-            
-            pathPoints.push(new THREE.Vector3(f.x, 10, -f.y)); // アプローチ
-            
-            if (r <= 0) { // 工具径が穴径以上（ドリル送り）
-                for(let z=0; z >= -f.z; z -= f.stepZ) {
-                    pathPoints.push(new THREE.Vector3(f.x, z, -f.y));
+        // パス描画
+        processes.forEach(p => {
+            const pathMat = new THREE.LineBasicMaterial({ color: 0xffff00 });
+            if(p.type === 'face') {
+                // 上面フェイス加工パス (素材上面からワーク上面0まで)
+                const pts = [];
+                for(let z_alt = mz_top; z_alt >= 0; z_alt -= p.stepZ) {
+                    pts.push(new THREE.Vector3(workPosX - mx/2, z_alt, workPosZ - my/2));
+                    pts.push(new THREE.Vector3(workPosX + mx/2, z_alt, workPosZ + my/2));
                 }
-                pathPoints.push(new THREE.Vector3(f.x, -f.z, -f.y));
-            } else { // ヘリカル風
-                for(let z=0; z >= -f.z; z -= 0.5) {
-                    const angle = z * 2;
-                    pathPoints.push(new THREE.Vector3(f.x + Math.cos(angle)*r, z, -f.y + Math.sin(angle)*r));
-                }
-                for(let a=0; a<=Math.PI*2; a+=0.2) { // 底面一周
-                    pathPoints.push(new THREE.Vector3(f.x + Math.cos(a)*r, -f.z, -f.y + Math.sin(a)*r));
-                }
+                modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), pathMat));
+            } else if(p.type === 'hole_proc') {
+                // 登録された「穴」すべてに対してパスを生成
+                features.filter(f => f.type === 'hole').forEach(f => {
+                    const pts = [];
+                    pts.push(new THREE.Vector3(f.x, 10, -f.y));
+                    for(let depth = 0; depth >= -f.z; depth -= p.stepZ) {
+                        pts.push(new THREE.Vector3(f.x, depth, -f.y));
+                    }
+                    modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), pathMat));
+                });
             }
-            const pathGeo = new THREE.BufferGeometry().setFromPoints(pathPoints);
-            const pathLine = new THREE.Line(pathGeo, new THREE.LineBasicMaterial({ color: 0xffff00 }));
-            modelGroup.add(pathLine);
         });
     }
 
