@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NC-Modeler V5 - Origin Alignment</title>
+    <title>NC-Modeler V5 - Origin Fixed</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
@@ -86,7 +86,7 @@
         const container = document.getElementById('view-container');
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 3000);
-        camera.position.set(150, 150, 150);
+        camera.position.set(180, 180, 180);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
@@ -151,12 +151,10 @@
     function drawOriginMark() {
         const group = new THREE.Group();
         const mat = new THREE.LineBasicMaterial({ color: 0xffffff });
-        const size = 40;
-        // 十字線
+        const size = 50;
         group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-size,0,0), new THREE.Vector3(size,0,0)]), mat));
         group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,-size), new THREE.Vector3(0,0,size)]), mat));
-        // 中心リング
-        const ring = new THREE.Mesh(new THREE.TorusGeometry(4, 0.3, 8, 32), new THREE.MeshBasicMaterial({color:0xffffff}));
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(5, 0.4, 8, 32), new THREE.MeshBasicMaterial({color:0xffffff}));
         ring.rotation.x = Math.PI/2;
         group.add(ring);
         modelGroup.add(group);
@@ -176,34 +174,36 @@
 
         document.getElementById('calcInfo').innerHTML = `底面残り(クランプ代): ${(mz_total - wz - mz_top).toFixed(2)} mm`;
 
-        // --- ワークの配置 (Anchor point logic) ---
+        // --- ワークの配置 (中心座標を計算) ---
         let workCenterX, workCenterY;
 
         if (currentOrigin === 'CC') {
-            // 中央原点：ワークの中心が(0,0)
             workCenterX = 0;
             workCenterY = 0;
         } else {
-            // 右下原点：原点から見てワークは左(X-)、奥(Y+)に広がる
-            // BoxGeometryは中心座標を指定するため、半分ずらす
+            // 右下原点(BR)の場合
+            // X方向：原点(0)から左(マイナス)へ100mmなので、中心は -50
             workCenterX = -wx / 2;
+            // Y方向：原点(0)から奥(プラス)へ100mmなので、中心は +50
             workCenterY = wy / 2;
         }
 
-        // ワーク本体
+        // ワーク本体 (Finish)
         const work = new THREE.Mesh(
             new THREE.BoxGeometry(wx, wz, wy),
             new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.7 })
         );
+        // BoxGeometryのpositionは「中心」を指定する。
+        // Y軸（高さ方向）は上面を0にするため、-wz/2
         work.position.set(workCenterX, -wz/2, workCenterY);
         modelGroup.add(work);
 
-        // 素材 (ワイヤーフレーム)
-        // 素材もワークの「仕上がり中心」に合わせて配置
+        // 素材 (Stock Wireframe)
         const stock = new THREE.Mesh(
             new THREE.BoxGeometry(mx, mz_total, my),
             new THREE.MeshBasicMaterial({ color: 0x888888, wireframe: true })
         );
+        // 素材もワーク中心に合わせ、Z方向（厚み）は上面しろ分だけ浮かせる
         stock.position.set(workCenterX, -(wz + mz_top) + mz_total/2, workCenterY);
         modelGroup.add(stock);
 
@@ -214,11 +214,13 @@
             const mat = new THREE.MeshPhongMaterial({ color: isHole ? 0xff4444 : 0x44ff44 });
             const mesh = new THREE.Mesh(geo, mat);
             
-            // 入力された座標をそのまま原点からの距離として配置
-            // Yは画面奥方向なのでマイナス
+            // 入力座標(f.x, f.y)をそのまま原点(0,0,0)からの位置として反映
+            // Three.jsの座標系では Z軸のマイナスが画面奥。
+            // 現場座標の Yプラス = Three.jsの Zマイナス に対応させる
+            const zPosFromY = -f.y; 
             const yDepth = isHole ? -f.z/2 : f.z/2;
-            mesh.position.set(f.x, yDepth, -f.y); 
             
+            mesh.position.set(f.x, yDepth, zPosFromY); 
             modelGroup.add(mesh);
         });
     }
