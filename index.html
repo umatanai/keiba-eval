@@ -3,29 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NC-Modeler V5 - Origin Focus</title>
+    <title>NC-Modeler V5 - Origin Linked</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
-        :root { --orange: #ff9800; --bg: #0b0b0b; --card: #1a1a1a; --text: #eee; --red: #ff4444; --green: #4caf50; }
+        :root { --orange: #ff9800; --bg: #0b0b0b; --card: #1a1a1a; --text: #eee; --red: #ff4444; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         #view-container { position: sticky; top: 0; width: 100%; height: 45vh; background: #000; z-index: 10; border-bottom: 2px solid #333; }
         #settings-container { flex: 1; overflow-y: auto; padding: 15px; box-sizing: border-box; -webkit-overflow-scrolling: touch; }
         .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; }
-        h2 { font-size: 0.8rem; margin: 0 0 12px 0; color: var(--orange); border-bottom: 1px solid #444; padding-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+        h2 { font-size: 0.8rem; margin: 0 0 12px 0; color: var(--orange); border-bottom: 1px solid #444; padding-bottom: 6px; }
         .row { display: flex; gap: 8px; margin-bottom: 10px; }
         .col { flex: 1; }
         label { display: block; font-size: 0.65rem; color: #888; margin-bottom: 4px; }
         input, select { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #333; background: #2a2a2a; color: #fff; font-size: 1rem; box-sizing: border-box; outline: none; }
-        input:focus { border-color: var(--orange); }
         .origin-selector { display: flex; gap: 10px; }
-        .origin-btn { flex: 1; padding: 12px; background: #333; border-radius: 8px; text-align: center; font-size: 0.9rem; border: 1px solid #444; cursor: pointer; transition: 0.2s; }
+        .origin-btn { flex: 1; padding: 12px; background: #333; border-radius: 8px; text-align: center; font-size: 0.9rem; border: 1px solid #444; cursor: pointer; }
         .origin-btn.active { background: var(--orange); color: #000; font-weight: bold; border-color: var(--orange); }
-        .add-btn { width: 100%; padding: 15px; background: var(--orange); border: none; border-radius: 8px; color: #000; font-weight: bold; margin-top: 5px; cursor: pointer; font-size: 1rem; }
-        
+        .add-btn { width: 100%; padding: 15px; background: var(--orange); border: none; border-radius: 8px; color: #000; font-weight: bold; margin-top: 5px; cursor: pointer; }
         .feat-item { display: flex; justify-content: space-between; align-items: center; background: #252525; padding: 10px 12px; border-radius: 6px; margin-top: 8px; font-size: 0.85rem; border-left: 4px solid var(--orange); }
-        .del-btn { background: var(--red); color: white; border: none; border-radius: 4px; padding: 6px 10px; font-size: 0.75rem; cursor: pointer; }
-        .calc-box { background: #001a00; padding: 12px; border-radius: 6px; border: 1px solid #004400; margin-top: 10px; font-family: 'Courier New', monospace; font-size: 0.75rem; color: #00ff00; }
+        .del-btn { background: var(--red); color: white; border: none; border-radius: 4px; padding: 6px 10px; cursor: pointer; }
+        .calc-box { background: #001a00; padding: 12px; border-radius: 6px; border: 1px solid #004400; margin-top: 10px; font-family: monospace; font-size: 0.75rem; color: #00ff00; }
     </style>
 </head>
 <body>
@@ -49,32 +47,32 @@
             <div class="col"><label>素材 Y</label><input type="number" id="mY" value="105" oninput="draw()"></div>
         </div>
         <div class="row">
-            <div class="col"><label>上面取りしろ</label><input type="number" id="mZ_top" value="1" oninput="draw()"></div>
+            <div class="col"><label>上面しろ</label><input type="number" id="mZ_top" value="1" oninput="draw()"></div>
             <div class="col"><label>素材全厚</label><input type="number" id="mZ_total" value="25" oninput="draw()"></div>
         </div>
         <div id="calcInfo" class="calc-box">計算中...</div>
     </div>
 
     <div class="card">
-        <h2>3. ワーク座標系原点 (G54)</h2>
+        <h2>3. 原点位置 (G54)</h2>
         <div class="origin-selector">
-            <div class="origin-btn active" id="btn_CC" onclick="setOrigin('CC')">ワーク中心</div>
-            <div class="origin-btn" id="btn_BR" onclick="setOrigin('BR')">右下角</div>
+            <div class="origin-btn active" id="btn_CC" onclick="setOrigin('CC')">中央</div>
+            <div class="origin-btn" id="btn_BR" onclick="setOrigin('BR')">右下</div>
         </div>
     </div>
 
     <div class="card">
-        <h2>4. 追加加工 (Features)</h2>
+        <h2>4. 形状追加 (Input coordinates from G54)</h2>
         <div class="row">
-            <select id="fType" style="flex:1.5;"><option value="hole">穴 (Hole)</option><option value="boss">ボス (Boss)</option></select>
-            <input type="number" id="fX" placeholder="X" style="flex:1;">
-            <input type="number" id="fY" placeholder="Y" style="flex:1;">
+            <select id="fType" style="flex:1.5;"><option value="hole">穴</option><option value="boss">ボス</option></select>
+            <input type="number" id="fX" placeholder="X座標" style="flex:1;">
+            <input type="number" id="fY" placeholder="Y座標" style="flex:1;">
         </div>
         <div class="row">
-            <input type="number" id="fD" placeholder="径 Φ" style="flex:1;">
-            <input type="number" id="fZ" placeholder="深さ/高" style="flex:1;">
+            <input type="number" id="fD" placeholder="径Φ" style="flex:1;">
+            <input type="number" id="fZ" placeholder="深/高" style="flex:1;">
         </div>
-        <button class="add-btn" onclick="addFeature()">リストに追加</button>
+        <button class="add-btn" onclick="addFeature()">追加</button>
         <div id="featureList"></div>
     </div>
 </div>
@@ -87,9 +85,8 @@
     function init() {
         const container = document.getElementById('view-container');
         scene = new THREE.Scene();
-        
-        camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 5000);
-        camera.position.set(180, 180, 180);
+        camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 3000);
+        camera.position.set(160, 160, 160);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
@@ -99,11 +96,10 @@
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
 
-        // Lighting
-        scene.add(new THREE.AmbientLight(0xaaaaaa, 0.5));
-        const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(200, 500, 300);
-        scene.add(light);
+        scene.add(new THREE.AmbientLight(0xaaaaaa, 0.6));
+        const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+        sun.position.set(100, 200, 100);
+        scene.add(sun);
 
         modelGroup = new THREE.Group();
         scene.add(modelGroup);
@@ -146,7 +142,7 @@
         const list = document.getElementById('featureList');
         list.innerHTML = features.map(f => `
             <div class="feat-item">
-                <span><b>${f.type === 'hole' ? 'Hole' : 'Boss'}</b>: X${f.x} Y${f.y} Φ${f.d} Z${f.z}</span>
+                <span>${f.type === 'hole' ? '穴' : 'ボス'} (X${f.x}, Y${f.y}, Φ${f.d})</span>
                 <button class="del-btn" onclick="removeFeature(${f.id})">削除</button>
             </div>
         `).join('');
@@ -156,39 +152,20 @@
         const group = new THREE.Group();
         const mat = new THREE.LineBasicMaterial({ color: 0xffffff });
         const size = 30;
-
-        // X Line (White)
-        const xPoints = [new THREE.Vector3(-size, 0, 0), new THREE.Vector3(size, 0, 0)];
-        const xGeom = new THREE.BufferGeometry().setFromPoints(xPoints);
-        group.add(new THREE.Line(xGeom, mat));
-
-        // Y Line (White)
-        const yPoints = [new THREE.Vector3(0, 0, -size), new THREE.Vector3(0, 0, size)];
-        const yGeom = new THREE.BufferGeometry().setFromPoints(yPoints);
-        group.add(new THREE.Line(yGeom, mat));
-
-        // Center Ring
-        const ringGeo = new THREE.TorusGeometry(5, 0.4, 8, 32);
-        const ringMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-        const ring = new THREE.Mesh(ringGeo, ringMat);
-        ring.rotation.x = Math.PI / 2;
+        // 十字
+        const xPts = [new THREE.Vector3(-size,0,0), new THREE.Vector3(size,0,0)];
+        group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(xPts), mat));
+        const yPts = [new THREE.Vector3(0,0,-size), new THREE.Vector3(0,0,size)];
+        group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(yPts), mat));
+        // リング
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(5, 0.3, 8, 32), new THREE.MeshBasicMaterial({color:0xffffff}));
+        ring.rotation.x = Math.PI/2;
         group.add(ring);
-
-        // Axis Labels (Small indicators)
-        const xTip = new THREE.Mesh(new THREE.BoxGeometry(4, 1, 1), new THREE.MeshBasicMaterial({color: 0xff0000}));
-        xTip.position.set(size, 0, 0);
-        group.add(xTip);
-
-        const yTip = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 4), new THREE.MeshBasicMaterial({color: 0x00ff00}));
-        yTip.position.set(0, 0, size);
-        group.add(yTip);
-
         modelGroup.add(group);
     }
 
     function draw() {
         while(modelGroup.children.length > 0) modelGroup.remove(modelGroup.children[0]);
-
         drawOriginMark();
 
         const wx = parseFloat(document.getElementById('wX').value);
@@ -199,59 +176,47 @@
         const mz_top = parseFloat(document.getElementById('mZ_top').value);
         const mz_total = parseFloat(document.getElementById('mZ_total').value);
 
-        const bottomStock = mz_total - wz - mz_top;
-        document.getElementById('calcInfo').innerHTML = `底面残り(クランプ代): ${bottomStock.toFixed(2)} mm<br>Z原点: ワーク上面(Finish Top)`;
+        document.getElementById('calcInfo').innerHTML = `底面残り(クランプ代): ${(mz_total - wz - mz_top).toFixed(2)} mm`;
 
-        // オフセット計算: 原点マーク(0,0,0)に対してワークをどこに置くか
-        let ox = (currentOrigin === 'CC') ? 0 : -wx;
-        let oy = (currentOrigin === 'CC') ? 0 : wy; // 右下原点の場合、ワークはYマイナス方向に広がる
+        // --- ワークの配置計算 ---
+        // 中央原点：中心が(0,0)
+        // 右下原点：右下角が(0,0) → ワークの中心は X-50, Y+50 の位置になる
+        let workPosX = (currentOrigin === 'CC') ? 0 : -wx/2;
+        let workPosY = (currentOrigin === 'CC') ? 0 : wy/2;
 
-        // ワーク本体 (Finish Work)
-        const workGeo = new THREE.BoxGeometry(wx, wz, wy);
-        const workMat = new THREE.MeshPhongMaterial({ color: 0x444444, transparent: true, opacity: 0.7 });
-        const work = new THREE.Mesh(workGeo, workMat);
-        // 上面を Z=0 に合わせる
-        work.position.set(
-            (currentOrigin === 'CC' ? 0 : -wx/2), 
-            -wz/2, 
-            (currentOrigin === 'CC' ? 0 : wy/2)
+        // ワーク本体
+        const work = new THREE.Mesh(
+            new THREE.BoxGeometry(wx, wz, wy),
+            new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.7 })
         );
+        work.position.set(workPosX, -wz/2, workPosY);
         modelGroup.add(work);
 
-        // 素材 (Raw Stock Wireframe)
-        const matGeo = new THREE.BoxGeometry(mx, mz_total, my);
-        const matMat = new THREE.MeshBasicMaterial({ color: 0x666666, wireframe: true });
-        const stock = new THREE.Mesh(matGeo, matMat);
-        stock.position.set(
-            (currentOrigin === 'CC' ? 0 : -wx/2), 
-            - (wz + mz_top) + mz_total/2, 
-            (currentOrigin === 'CC' ? 0 : wy/2)
+        // 素材
+        const stock = new THREE.Mesh(
+            new THREE.BoxGeometry(mx, mz_total, my),
+            new THREE.MeshBasicMaterial({ color: 0x888888, wireframe: true })
         );
+        stock.position.set(workPosX, -(wz + mz_top) + mz_total/2, workPosY);
         modelGroup.add(stock);
 
-        // フィーチャー (Features)
+        // --- 形状の配置計算 (ここがポイント) ---
         features.forEach(f => {
             const geo = new THREE.CylinderGeometry(f.d/2, f.d/2, f.z, 32);
             const isHole = f.type === 'hole';
-            const mat = new THREE.MeshPhongMaterial({ color: isHole ? 0xff3333 : 0x33ff33 });
+            const mat = new THREE.MeshPhongMaterial({ color: isHole ? 0xff4444 : 0x44ff44 });
             const mesh = new THREE.Mesh(geo, mat);
             
-            // 深さ方向の調整
+            // 入力された座標(f.x, f.y)をそのまま原点(0,0,0)からのオフセットとして使う
+            // CNCの座標系に合わせてY軸を反転 (-f.y)
             const yPos = isHole ? -f.z/2 : f.z/2;
-            mesh.position.set(f.x, yPos, -f.y); // CNC座標系に合わせるためYは反転
+            mesh.position.set(f.x, yPos, -f.y); 
+            
             modelGroup.add(mesh);
         });
     }
-
-    window.onresize = function() {
-        const container = document.getElementById('view-container');
-        camera.aspect = container.clientWidth / container.clientHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(container.clientWidth, container.clientHeight);
-    };
 
     window.onload = init;
 </script>
 </body>
 </html>
-
