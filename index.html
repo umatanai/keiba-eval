@@ -22,7 +22,6 @@
         .origin-btn.active { background: var(--orange); color: #000; font-weight: bold; border-color: var(--orange); }
         .add-btn { width: 100%; padding: 15px; background: var(--orange); border: none; border-radius: 8px; color: #000; font-weight: bold; margin-top: 5px; cursor: pointer; }
         
-        /* フィーチャーリストのスタイル */
         .feat-item { display: flex; justify-content: space-between; align-items: center; background: #252525; padding: 8px 12px; border-radius: 6px; margin-top: 5px; font-size: 0.85rem; border-left: 4px solid var(--orange); }
         .del-btn { background: var(--red); color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.7rem; cursor: pointer; }
         .calc-box { background: #000; padding: 10px; border-radius: 6px; border: 1px solid #333; margin-top: 10px; font-family: monospace; font-size: 0.75rem; color: #00ff00; }
@@ -34,7 +33,7 @@
 
 <div id="settings-container">
     <div class="card">
-        <h2>1. ワーク寸法 (仕上がり)</h2>
+        <h2>1. ワーク寸法 (最終形状)</h2>
         <div class="row">
             <div class="col"><label>幅 X</label><input type="number" id="wX" value="100" oninput="draw()"></div>
             <div class="col"><label>長さ Y</label><input type="number" id="wY" value="100" oninput="draw()"></div>
@@ -43,7 +42,7 @@
     </div>
 
     <div class="card">
-        <h2>2. 材料サイズ</h2>
+        <h2>2. 材料サイズ (素材そのもの)</h2>
         <div class="row">
             <div class="col"><label>材料幅 X</label><input type="number" id="mX" value="105" oninput="draw()"></div>
             <div class="col"><label>材料長さ Y</label><input type="number" id="mY" value="105" oninput="draw()"></div>
@@ -52,11 +51,11 @@
             <div class="col"><label>上面取りしろ</label><input type="number" id="mZ_top" value="1" oninput="draw()"></div>
             <div class="col"><label>材料厚み</label><input type="number" id="mZ_total" value="25" oninput="draw()"></div>
         </div>
-        <div id="calcInfo" class="calc-box"></div>
+        <div id="calcInfo" class="calc-box">底面取りしろ(クランプ可能域): 計算中...</div>
     </div>
 
     <div class="card">
-        <h2>3. 原点 (G54)</h2>
+        <h2>3. 原点位置 (G54)</h2>
         <div class="origin-selector">
             <div class="origin-btn active" id="btn_CC" onclick="setOrigin('CC')">中央</div>
             <div class="origin-btn" id="btn_BR" onclick="setOrigin('BR')">右下</div>
@@ -64,17 +63,17 @@
     </div>
 
     <div class="card">
-        <h2>4. 形状追加</h2>
+        <h2>4. フィーチャー追加</h2>
         <div class="row">
             <select id="fType" style="flex:1;"><option value="hole">穴</option><option value="boss">ボス</option></select>
-            <input type="number" id="fX" placeholder="X" style="flex:1;">
-            <input type="number" id="fY" placeholder="Y" style="flex:1;">
+            <input type="number" id="fX" placeholder="X座標" style="flex:1;">
+            <input type="number" id="fY" placeholder="Y座標" style="flex:1;">
         </div>
         <div class="row">
             <input type="number" id="fD" placeholder="直径" style="flex:1;">
             <input type="number" id="fZ" placeholder="深さ/高さ" style="flex:1;">
         </div>
-        <button class="add-btn" onclick="addFeature()">追加</button>
+        <button class="add-btn" onclick="addFeature()">モデルに追加</button>
         <div id="featureList"></div>
     </div>
 </div>
@@ -88,7 +87,7 @@
         const container = document.getElementById('view-container');
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 3000);
-        camera.position.set(160, 160, 160);
+        camera.position.set(150, 150, 150);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
@@ -97,12 +96,12 @@
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
 
-        scene.add(new THREE.AmbientLight(0x909090));
-        const sun = new THREE.DirectionalLight(0xffffff, 0.6);
+        scene.add(new THREE.AmbientLight(0x808080));
+        const sun = new THREE.DirectionalLight(0xffffff, 0.8);
         sun.position.set(100, 200, 100);
         scene.add(sun);
 
-        const axes = new THREE.AxesHelper(60); // X:赤, Y:緑, Z:青
+        const axes = new THREE.AxesHelper(60); 
         scene.add(axes);
 
         modelGroup = new THREE.Group();
@@ -163,36 +162,35 @@
         const mz_top = parseFloat(document.getElementById('mZ_top').value);
         const mz_total = parseFloat(document.getElementById('mZ_total').value);
 
-        document.getElementById('calcInfo').innerText = `掴みしろ: ${(mz_total - wz - mz_top).toFixed(2)} mm`;
+        document.getElementById('calcInfo').innerHTML = `底面取りしろ(クランプ可能域): ${(mz_total - wz - mz_top).toFixed(2)} mm`;
 
-        // 【座標ロジック修正】
-        // 中央: ワークの中心を(0,0)にする
-        // 右下: ワークの右下角を(0,0)にし、ワークをXマイナス/Yプラス方向へ配置
-        let ox = (currentOrigin === 'CC') ? 0 : -wx/2;
+        // 原点配置ロジックの厳密な修正
+        // 右下(BR): X軸マイナス方向、Y軸プラス方向へ配置
+        let ox = (currentOrigin === 'CC') ? 0 : -wx/2; 
         let oy = (currentOrigin === 'CC') ? 0 : wy/2;
 
-        // ワーク本体
         const workGeo = new THREE.BoxGeometry(wx, wz, wy);
-        const workMat = new THREE.MeshPhongMaterial({ color: 0x666666, transparent: true, opacity: 0.7 });
+        const workMat = new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.8 });
         const work = new THREE.Mesh(workGeo, workMat);
-        work.position.set(ox, -wz/2, oy);
+        
+        // 配置座標の計算
+        const posX = (currentOrigin === 'CC') ? 0 : -wx/2;
+        const posY = (currentOrigin === 'CC') ? 0 : wy/2;
+        work.position.set(posX, -wz/2, posY);
         modelGroup.add(work);
 
-        // 材料 (ワイヤーフレーム)
         const matGeo = new THREE.BoxGeometry(mx, mz_total, my);
         const matMat = new THREE.MeshBasicMaterial({ color: 0x888888, wireframe: true });
         const stock = new THREE.Mesh(matGeo, matMat);
-        stock.position.set(ox, -(wz + mz_top) + mz_total/2, oy);
+        stock.position.set(posX, - (wz + mz_top) + mz_total/2, posY);
         modelGroup.add(stock);
 
-        // フィーチャー描画
         features.forEach(f => {
             const geo = new THREE.CylinderGeometry(f.d/2, f.d/2, f.z, 32);
             const isHole = f.type === 'hole';
-            const mat = new THREE.MeshPhongMaterial({ color: isHole ? 0xaa0000 : 0x00aa00 });
+            const mat = new THREE.MeshPhongMaterial({ color: isHole ? 0x990000 : 0x00ff00 });
             const mesh = new THREE.Mesh(geo, mat);
             
-            // 原点位置に応じたXY座標の補正
             const fx = (currentOrigin === 'CC') ? f.x : f.x - wx;
             const fy = (currentOrigin === 'CC') ? f.y : f.y;
             
