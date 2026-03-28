@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NC-Modeler V7</title>
+    <title>NC-Modeler V9</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
@@ -86,7 +86,7 @@
         const container = document.getElementById('view-container');
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 3000);
-        camera.position.set(150, 150, 150);
+        camera.position.set(160, 160, 160);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
@@ -100,7 +100,12 @@
         sun.position.set(100, 200, 100);
         scene.add(sun);
 
-        const axes = new THREE.AxesHelper(60); 
+        // カスタム軸ヘルパー (X:赤, Y:青, Z:緑)
+        const axes = new THREE.Group();
+        const lineX = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(60,0,0)]), new THREE.LineBasicMaterial({color: 0xff0000}));
+        const lineY = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,60)]), new THREE.LineBasicMaterial({color: 0x0000ff})); // Yは奥
+        const lineZ = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,-60,0)]), new THREE.LineBasicMaterial({color: 0x00ff00})); // Zは下
+        axes.add(lineX, lineY, lineZ);
         scene.add(axes);
 
         modelGroup = new THREE.Group();
@@ -163,18 +168,17 @@
 
         document.getElementById('calcInfo').innerHTML = `底面取りしろ(クランプ可能域): ${(mz_total - wz - mz_top).toFixed(2)} mm`;
 
-        // 依頼に基づいた再配置ロジック
-        // 1. 現状の右上を180°回転（符号反転）して左下へ
-        // 2. そこからさらに移動させて「右下」を(0,0)にする
+        // 徹底修正された配置ロジック
+        // 右下原点(BR): ワークの右(Xmax)を手前(Ymin)に置く
+        // Xはマイナス方向へ、Yはプラス方向へ
         let posX = (currentOrigin === 'CC') ? 0 : -wx/2;
+        let posZ = -wz/2; // Zマイナス方向(下)
         let posY = (currentOrigin === 'CC') ? 0 : wy/2;
 
         const workGeo = new THREE.BoxGeometry(wx, wz, wy);
         const workMat = new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.8 });
         const work = new THREE.Mesh(workGeo, workMat);
-        
-        // 【重要修正】ワークの位置を強制的に「原点から左と奥」に固定
-        work.position.set(posX, -wz/2, posY);
+        work.position.set(posX, posZ, posY);
         modelGroup.add(work);
 
         const matGeo = new THREE.BoxGeometry(mx, mz_total, my);
@@ -189,12 +193,13 @@
             const mat = new THREE.MeshPhongMaterial({ color: isHole ? 0x990000 : 0x00ff00 });
             const mesh = new THREE.Mesh(geo, mat);
             
-            // フィーチャーの位置も180°反転を考慮した右下基準に修正
+            // 入力座標(f.x, f.y)を右下原点から計算
+            // Xは左へ(マイナス)、Yは奥へ(プラス)
             const fx = (currentOrigin === 'CC') ? f.x : f.x - wx;
             const fy = (currentOrigin === 'CC') ? f.y : f.y;
             
-            const yOffset = isHole ? -f.z/2 : f.z/2;
-            mesh.position.set(fx + (currentOrigin === 'CC' ? 0 : 0), yOffset, fy + (currentOrigin === 'CC' ? 0 : 0));
+            const zPos = isHole ? -f.z/2 : f.z/2;
+            mesh.position.set(fx + (currentOrigin === 'CC' ? 0 : wx/2), zPos, fy - (currentOrigin === 'CC' ? 0 : wy/2));
             modelGroup.add(mesh);
         });
     }
