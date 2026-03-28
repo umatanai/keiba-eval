@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NC-Modeler V5</title>
+    <title>NC-Modeler V6</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
@@ -21,7 +21,6 @@
         .origin-btn { flex: 1; padding: 12px; background: #333; border-radius: 8px; text-align: center; font-size: 0.9rem; border: 1px solid #444; cursor: pointer; }
         .origin-btn.active { background: var(--orange); color: #000; font-weight: bold; border-color: var(--orange); }
         .add-btn { width: 100%; padding: 15px; background: var(--orange); border: none; border-radius: 8px; color: #000; font-weight: bold; margin-top: 5px; cursor: pointer; }
-        
         .feat-item { display: flex; justify-content: space-between; align-items: center; background: #252525; padding: 8px 12px; border-radius: 6px; margin-top: 5px; font-size: 0.85rem; border-left: 4px solid var(--orange); }
         .del-btn { background: var(--red); color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.7rem; cursor: pointer; }
         .calc-box { background: #000; padding: 10px; border-radius: 6px; border: 1px solid #333; margin-top: 10px; font-family: monospace; font-size: 0.75rem; color: #00ff00; }
@@ -101,6 +100,7 @@
         sun.position.set(100, 200, 100);
         scene.add(sun);
 
+        // 原点を表示する軸ヘルパー
         const axes = new THREE.AxesHelper(60); 
         scene.add(axes);
 
@@ -164,24 +164,22 @@
 
         document.getElementById('calcInfo').innerHTML = `底面取りしろ(クランプ可能域): ${(mz_total - wz - mz_top).toFixed(2)} mm`;
 
-        // 原点配置ロジックの厳密な修正
-        // 右下(BR): X軸マイナス方向、Y軸プラス方向へ配置
-        let ox = (currentOrigin === 'CC') ? 0 : -wx/2; 
-        let oy = (currentOrigin === 'CC') ? 0 : wy/2;
+        // 【座標計算の根本修正】
+        // 右下(BR)選択時：ワークの「右端」がX=0、「手前端」がY=0になるように配置
+        // そのため、ワークの中心座標は X = -wx/2, Y = +wy/2 になる
+        let posX = (currentOrigin === 'CC') ? 0 : -wx/2;
+        let posY = (currentOrigin === 'CC') ? 0 : wy/2;
 
         const workGeo = new THREE.BoxGeometry(wx, wz, wy);
         const workMat = new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.8 });
         const work = new THREE.Mesh(workGeo, workMat);
-        
-        // 配置座標の計算
-        const posX = (currentOrigin === 'CC') ? 0 : -wx/2;
-        const posY = (currentOrigin === 'CC') ? 0 : wy/2;
         work.position.set(posX, -wz/2, posY);
         modelGroup.add(work);
 
         const matGeo = new THREE.BoxGeometry(mx, mz_total, my);
         const matMat = new THREE.MeshBasicMaterial({ color: 0x888888, wireframe: true });
         const stock = new THREE.Mesh(matGeo, matMat);
+        // 材料もワークと同じXY位置に配置
         stock.position.set(posX, - (wz + mz_top) + mz_total/2, posY);
         modelGroup.add(stock);
 
@@ -191,11 +189,13 @@
             const mat = new THREE.MeshPhongMaterial({ color: isHole ? 0x990000 : 0x00ff00 });
             const mesh = new THREE.Mesh(geo, mat);
             
+            // フィーチャー（穴など）の座標も原点に合わせてオフセット
+            // 右下原点なら入力値そのままで右下(0,0)からの相対距離になる
             const fx = (currentOrigin === 'CC') ? f.x : f.x - wx;
             const fy = (currentOrigin === 'CC') ? f.y : f.y;
             
-            const yPos = isHole ? -f.z/2 : f.z/2;
-            mesh.position.set(fx, yPos, fy);
+            const yOffset = isHole ? -f.z/2 : f.z/2;
+            mesh.position.set(fx + (currentOrigin === 'CC' ? 0 : wx/2), yOffset, fy - (currentOrigin === 'CC' ? 0 : wy/2));
             modelGroup.add(mesh);
         });
     }
