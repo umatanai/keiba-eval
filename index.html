@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NC-Modeler V9</title>
+    <title>NC-Modeler V10</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
@@ -21,8 +21,6 @@
         .origin-btn { flex: 1; padding: 12px; background: #333; border-radius: 8px; text-align: center; font-size: 0.9rem; border: 1px solid #444; cursor: pointer; }
         .origin-btn.active { background: var(--orange); color: #000; font-weight: bold; border-color: var(--orange); }
         .add-btn { width: 100%; padding: 15px; background: var(--orange); border: none; border-radius: 8px; color: #000; font-weight: bold; margin-top: 5px; cursor: pointer; }
-        .feat-item { display: flex; justify-content: space-between; align-items: center; background: #252525; padding: 8px 12px; border-radius: 6px; margin-top: 5px; font-size: 0.85rem; border-left: 4px solid var(--orange); }
-        .del-btn { background: var(--red); color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.7rem; cursor: pointer; }
         .calc-box { background: #000; padding: 10px; border-radius: 6px; border: 1px solid #333; margin-top: 10px; font-family: monospace; font-size: 0.75rem; color: #00ff00; }
     </style>
 </head>
@@ -41,7 +39,7 @@
     </div>
 
     <div class="card">
-        <h2>2. 材料サイズ (素材そのもの)</h2>
+        <h2>2. 材料サイズ</h2>
         <div class="row">
             <div class="col"><label>材料幅 X</label><input type="number" id="mX" value="105" oninput="draw()"></div>
             <div class="col"><label>材料長さ Y</label><input type="number" id="mY" value="105" oninput="draw()"></div>
@@ -50,7 +48,7 @@
             <div class="col"><label>上面取りしろ</label><input type="number" id="mZ_top" value="1" oninput="draw()"></div>
             <div class="col"><label>材料厚み</label><input type="number" id="mZ_total" value="25" oninput="draw()"></div>
         </div>
-        <div id="calcInfo" class="calc-box">底面取りしろ(クランプ可能域): 計算中...</div>
+        <div id="calcInfo" class="calc-box">掴みしろ: 計算中...</div>
     </div>
 
     <div class="card">
@@ -62,23 +60,23 @@
     </div>
 
     <div class="card">
-        <h2>4. フィーチャー追加</h2>
+        <h2>4. 形状追加</h2>
         <div class="row">
             <select id="fType" style="flex:1;"><option value="hole">穴</option><option value="boss">ボス</option></select>
-            <input type="number" id="fX" placeholder="X座標" style="flex:1;">
-            <input type="number" id="fY" placeholder="Y座標" style="flex:1;">
+            <input type="number" id="fX" placeholder="X" style="flex:1;">
+            <input type="number" id="fY" placeholder="Y" style="flex:1;">
         </div>
         <div class="row">
-            <input type="number" id="fD" placeholder="直径" style="flex:1;">
-            <input type="number" id="fZ" placeholder="深さ/高さ" style="flex:1;">
+            <input type="number" id="fD" placeholder="径" style="flex:1;">
+            <input type="number" id="fZ" placeholder="深/高" style="flex:1;">
         </div>
-        <button class="add-btn" onclick="addFeature()">モデルに追加</button>
+        <button class="add-btn" onclick="addFeature()">追加</button>
         <div id="featureList"></div>
     </div>
 </div>
 
 <script>
-    let scene, camera, renderer, controls, modelGroup;
+    let scene, camera, renderer, controls, modelGroup, originMarker;
     let currentOrigin = 'CC';
     let features = [];
 
@@ -100,13 +98,11 @@
         sun.position.set(100, 200, 100);
         scene.add(sun);
 
-        // カスタム軸ヘルパー (X:赤, Y:青, Z:緑)
-        const axes = new THREE.Group();
-        const lineX = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(60,0,0)]), new THREE.LineBasicMaterial({color: 0xff0000}));
-        const lineY = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,60)]), new THREE.LineBasicMaterial({color: 0x0000ff})); // Yは奥
-        const lineZ = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,-60,0)]), new THREE.LineBasicMaterial({color: 0x00ff00})); // Zは下
-        axes.add(lineX, lineY, lineZ);
-        scene.add(axes);
+        // 原点マーク (小さな白い球)
+        const markerGeo = new THREE.SphereGeometry(2, 16, 16);
+        const markerMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        originMarker = new THREE.Mesh(markerGeo, markerMat);
+        scene.add(originMarker);
 
         modelGroup = new THREE.Group();
         scene.add(modelGroup);
@@ -135,24 +131,7 @@
         const d = parseFloat(document.getElementById('fD').value) || 10;
         const z = parseFloat(document.getElementById('fZ').value) || 5;
         features.push({ type, x, y, d, z, id: Date.now() });
-        updateFeatureList();
         draw();
-    }
-
-    function removeFeature(id) {
-        features = features.filter(f => f.id !== id);
-        updateFeatureList();
-        draw();
-    }
-
-    function updateFeatureList() {
-        const list = document.getElementById('featureList');
-        list.innerHTML = features.map(f => `
-            <div class="feat-item">
-                <span>${f.type === 'hole' ? '穴' : 'ボス'} (X${f.x}, Y${f.y}, D${f.d}, Z${f.z})</span>
-                <button class="del-btn" onclick="removeFeature(${f.id})">削除</button>
-            </div>
-        `).join('');
     }
 
     function draw() {
@@ -166,17 +145,15 @@
         const mz_top = parseFloat(document.getElementById('mZ_top').value);
         const mz_total = parseFloat(document.getElementById('mZ_total').value);
 
-        document.getElementById('calcInfo').innerHTML = `底面取りしろ(クランプ可能域): ${(mz_total - wz - mz_top).toFixed(2)} mm`;
+        document.getElementById('calcInfo').innerHTML = `掴みしろ: ${(mz_total - wz - mz_top).toFixed(2)} mm`;
 
-        // 徹底修正された配置ロジック
-        // 右下原点(BR): ワークの右(Xmax)を手前(Ymin)に置く
-        // Xはマイナス方向へ、Yはプラス方向へ
+        // 右下原点(BR)の場合: Xは左(-)へ、Yは奥(+)へ、Zは下(-)へ
         let posX = (currentOrigin === 'CC') ? 0 : -wx/2;
-        let posZ = -wz/2; // Zマイナス方向(下)
         let posY = (currentOrigin === 'CC') ? 0 : wy/2;
+        let posZ = -wz/2;
 
         const workGeo = new THREE.BoxGeometry(wx, wz, wy);
-        const workMat = new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.8 });
+        const workMat = new THREE.MeshPhongMaterial({ color: 0x555555, transparent: true, opacity: 0.7 });
         const work = new THREE.Mesh(workGeo, workMat);
         work.position.set(posX, posZ, posY);
         modelGroup.add(work);
@@ -193,13 +170,12 @@
             const mat = new THREE.MeshPhongMaterial({ color: isHole ? 0x990000 : 0x00ff00 });
             const mesh = new THREE.Mesh(geo, mat);
             
-            // 入力座標(f.x, f.y)を右下原点から計算
-            // Xは左へ(マイナス)、Yは奥へ(プラス)
+            // 座標計算の整合
             const fx = (currentOrigin === 'CC') ? f.x : f.x - wx;
             const fy = (currentOrigin === 'CC') ? f.y : f.y;
+            const fz = isHole ? -f.z/2 : f.z/2;
             
-            const zPos = isHole ? -f.z/2 : f.z/2;
-            mesh.position.set(fx + (currentOrigin === 'CC' ? 0 : wx/2), zPos, fy - (currentOrigin === 'CC' ? 0 : wy/2));
+            mesh.position.set(fx + (currentOrigin === 'CC' ? 0 : wx/2), fz, fy - (currentOrigin === 'CC' ? 0 : wy/2));
             modelGroup.add(mesh);
         });
     }
