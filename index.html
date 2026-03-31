@@ -10,8 +10,6 @@
   <style>
     body { margin: 0; padding: 0; font-family: 'Noto Sans JP', 'Hiragino Sans', 'Meiryo', sans-serif; background: #f0f4f0; }
     ::-webkit-scrollbar { display: none; }
-    /* テーブルのセルのテキストが折り返さないように設定 */
-    th, td { white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -100,6 +98,8 @@
       const [showHeadPicker, setShowHeadPicker] = useState(false);
       const [showSettings, setShowSettings] = useState(false);
       const [editItem, setEditItem]   = useState(null);
+      const [newLabel, setNewLabel]   = useState("");
+      const [newCat, setNewCat]       = useState("能力");
       const [confirmDialog, setConfirmDialog] = useState(null);
 
       const marks = marksList[currentRace] || {};
@@ -141,6 +141,18 @@
         });
       };
 
+      const fullReset = () => {
+        confirmAction("全てリセットします。\n項目設定と全レースの入力が初期化されます。", () => {
+          setMarksList({ 1: {}, 2: {}, 3: {} });
+          setHeadCounts({ 1: 10, 2: 10, 3: 10 });
+          setItems(DEFAULT_ITEMS); 
+          setCurrentRace(1);
+          setActiveTab("eval"); 
+          setFocusCat(null);
+          localStorage.removeItem(STORAGE_KEY); 
+        });
+      };
+
       const shownItems = focusCat ? items.filter(i => i.category === focusCat) : items;
       const updateWeight = (id, val) => setItems(p => p.map(i => i.id === id ? { ...i, weight: val } : i));
       const deleteItem = (id) => {
@@ -155,7 +167,20 @@
             });
             return next;
           });
+          if (editItem?.id === id) setEditItem(null);
         });
+      };
+
+      const addItem = () => {
+        if (!newLabel.trim()) return;
+        setItems(p => [...p, { id: genId(), label: newLabel.trim(), category: newCat, weight: 1.0 }]);
+        setNewLabel("");
+      };
+
+      const saveEdit = () => {
+        if (!editItem) return;
+        setItems(p => p.map(i => i.id === editItem.id ? { ...editItem } : i));
+        setEditItem(null);
       };
 
       const maxPossible = items.reduce((s, i) => s + i.weight, 0);
@@ -165,36 +190,33 @@
         const active = focusCat === cat;
         return (
           <button onClick={() => setFocusCat(focusCat === cat ? null : cat)} style={{
-            flex: 1, padding: "6px 0", borderRadius: "4px", border: "1.5px solid " + cc.bg,
+            flex: 1, padding: "4px 0", borderRadius: "4px", border: "1.5px solid " + cc.bg,
             background: active ? cc.bg : "#fff", color: active ? "#fff" : cc.bg,
             fontSize: "12px", cursor: "pointer", fontWeight: active ? "700" : "600",
-            width: "100%"
+            whiteSpace: "nowrap", width: "100%"
           }}>{cat}</button>
         );
       };
 
       return (
         <div style={{ minHeight: "100vh", background: "#f0f4f0", color: "#111", paddingBottom: "20px" }}>
-          {/* 1. タイトルの列 */}
-          <div style={{ background: "#00693e", padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+          <div style={{ background: "#00693e", paddingBottom: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", gap: "6px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "7px", flexShrink: 0 }}>
                 <div style={{ background: "#fff", borderRadius: "5px", padding: "3px 6px", display: "flex", alignItems: "center", gap: "4px" }}>
                   <span style={{ fontSize: "14px" }}>🏇</span>
                   <span style={{ fontSize: "11px", fontWeight: "900", color: "#00693e" }}>JRA</span>
                 </div>
-                <span style={{ fontSize: "14px", fontWeight: "900", color: "#fff" }}>競馬予想</span>
+                <span style={{ fontSize: "14px", fontWeight: "900", color: "#fff", whiteSpace: "nowrap" }}>競馬予想</span>
               </div>
-              <div style={{ display: "flex", gap: "6px" }}>
-                <button onClick={() => setShowSettings(true)} style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: "6px", color: "#fff", fontSize: "16px", width: "32px", height: "32px", cursor: "pointer" }}>⚙️</button>
+              <div style={{ display: "flex", alignItems: "center", gap: "5px", flexShrink: 0 }}>
+                <button onClick={() => setShowSettings(true)} style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: "6px", color: "#fff", fontSize: "16px", width: "32px", height: "32px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>⚙️</button>
                 <button onClick={reset} style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: "6px", color: "#fff", fontSize: "12px", padding: "5px 9px", cursor: "pointer", fontWeight: "700" }}>リセット</button>
               </div>
             </div>
-          </div>
-
-          {/* 2. レース1〜3の列（分離） */}
-          <div style={{ background: "#00693e", padding: "0 12px 12px" }}>
-            <div style={{ display: "flex", gap: "8px" }}>
+            
+            {/* 修正：タイトル領域と隙間を開ける */}
+            <div style={{ display: "flex", padding: "8px 12px 0", gap: "8px", marginTop: "8px" }}>
               {[1, 2, 3].map(r => (
                 <button
                   key={r}
@@ -227,7 +249,11 @@
                     flex: 1, padding: "12px 4px", border: "none",
                     background: activeTab === t.k ? "#fff" : "transparent",
                     color: activeTab === t.k ? "#00693e" : "#fff",
-                    fontSize: "14px", fontWeight: "900", cursor: "pointer", borderRadius: "7px"
+                    fontSize: "14px", 
+                    fontWeight: "900",
+                    cursor: "pointer",
+                    borderRadius: "7px",
+                    transition: "all 0.2s"
                   }}
                 >
                   {t.l}
@@ -254,7 +280,7 @@
                   </div>
                   <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
                     <div style={{ display: "flex", gap: "4px", width: "100%" }}>
-                      <button onClick={() => setFocusCat(null)} style={{ flex: 1, padding: "6px 0", borderRadius: "4px", border: !focusCat ? "1.5px solid #00693e" : "1.5px solid #ccc", background: !focusCat ? "#00693e" : "#fff", color: !focusCat ? "#fff" : "#555", fontSize: "12px", cursor: "pointer", fontWeight: !focusCat ? "700" : "600" }}>全て</button>
+                      <button onClick={() => setFocusCat(null)} style={{ flex: 1, padding: "4px 0", borderRadius: "4px", border: !focusCat ? "1.5px solid #00693e" : "1.5px solid #ccc", background: !focusCat ? "#00693e" : "#fff", color: !focusCat ? "#fff" : "#555", fontSize: "12px", cursor: "pointer", fontWeight: !focusCat ? "700" : "600", width: "100%" }}>全て</button>
                       <CatButton cat="能力" />
                       <CatButton cat="適性" />
                     </div>
@@ -272,20 +298,25 @@
                 <span style={{ fontWeight: "700", color: "#00693e" }}>現在: レース{currentRace}</span>
               </div>
 
-              {/* 3. テーブル改行防止とレイアウト最適化 */}
               <div style={{ background: "#fff", borderRadius: "8px", border: "1px solid #ddd", overflow: "hidden" }}>
                 <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-                  <table style={{ borderCollapse: "collapse", width: "auto", minWidth: "100%" }}>
+                  <table style={{ borderCollapse: "collapse", width: "100%", tableLayout: "fixed" }}>
+                    <colgroup>
+                      {/* 修正：馬番列の幅を広げて改行を防ぐ */}
+                      <col style={{ width: "76px" }} />
+                      {shownItems.map(item => <col key={item.id} style={{ width: focusCat ? "80px" : "46px" }} />)}
+                      <col style={{ width: "42px" }} />
+                    </colgroup>
                     <thead>
                       <tr style={{ background: "#00693e" }}>
-                        <th style={{ fontSize: "11px", color: "#fff", textAlign: "left", padding: "7px 10px", sticky: "left", background: "#00693e", zIndex: 10 }}>馬番</th>
+                        <th style={{ fontSize: "11px", color: "#fff", textAlign: "left", padding: "7px 6px" }}>馬番</th>
                         {shownItems.map(item => (
-                          <th key={item.id} style={{ fontSize: "10px", color: "#fff", textAlign: "center", padding: "4px 8px", lineHeight: 1.2 }}>
+                          <th key={item.id} style={{ fontSize: "10px", color: "#fff", textAlign: "center", padding: "4px 1px", lineHeight: 1.2 }}>
                             <div>{item.label}</div>
                             <div style={{ fontSize: "9px", opacity: 0.75 }}>{item.weight.toFixed(1)}</div>
                           </th>
                         ))}
-                        <th style={{ fontSize: "11px", color: "#fff", textAlign: "center", padding: "7px 10px" }}>計</th>
+                        <th style={{ fontSize: "11px", color: "#fff", textAlign: "center", padding: "7px 2px" }}>計</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -296,9 +327,10 @@
                         const rowBg = idx % 2 === 0 ? "#fff" : "#f9faf9";
                         return (
                           <tr key={horse.number} style={{ background: score > 0 ? "#f0faf3" : rowBg, borderBottom: "1px solid #e8e8e8" }}>
-                            <td style={{ padding: "4px 10px", borderRight: "1px solid #e8e8e8" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                <span style={{ width: "20px", height: "20px", background: wc.bg, border: "2px solid " + wc.border, borderRadius: "3px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "900", color: wc.text, flexShrink: 0 }}>{waku}</span>
+                            <td style={{ padding: "4px 5px", borderRight: "1px solid #e8e8e8" }}>
+                              {/* 修正：whiteSpace: "nowrap" で10番以降の改行を防止 */}
+                              <div style={{ display: "flex", alignItems: "center", gap: "4px", whiteSpace: "nowrap" }}>
+                                <span style={{ flexShrink: 0, width: "20px", height: "20px", background: wc.bg, border: "2px solid " + wc.border, borderRadius: "3px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "900", color: wc.text }}>{waku}</span>
                                 <span style={{ fontSize: "13px", fontWeight: "700" }}>{horse.number}番</span>
                               </div>
                             </td>
@@ -306,15 +338,16 @@
                               const on = !!marks[horse.number + "-" + item.id];
                               const cc = CAT_COLOR[item.category];
                               return (
-                                <td key={item.id} onClick={() => tap(horse.number, item.id)} style={{ padding: "2px", borderRight: "1px solid #e8e8e8", textAlign: "center", cursor: "pointer" }}>
-                                  <div style={{ height: "36px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                    {on ? <span style={{ width: "20px", height: "20px", borderRadius: "50%", background: cc.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", color: "#fff", fontWeight: "900" }}>●</span> : null}
+                                <td key={item.id} style={{ padding: "0", borderRight: "1px solid #e8e8e8", textAlign: "center" }}>
+                                  {/* 修正：タップ領域の高さを固定し、中の円を中央配置。マスの正方形感を維持 */}
+                                  <div onClick={() => tap(horse.number, item.id)} style={{ height: "40px", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                                    {on ? <span style={{ width: "22px", height: "22px", borderRadius: "50%", background: cc.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", color: "#fff", fontWeight: "900" }}>●</span> : null}
                                   </div>
                                 </td>
                               );
                             })}
-                            <td style={{ padding: "2px 10px", textAlign: "center" }}>
-                              <div style={{ fontSize: "13px", fontWeight: "900", color: scoreColor(score) }}>
+                            <td style={{ padding: "2px", textAlign: "center" }}>
+                              <div style={{ height: "40px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: "900", color: scoreColor(score) }}>
                                 {score > 0 ? score.toFixed(1) : ""}
                               </div>
                             </td>
@@ -333,7 +366,7 @@
               <div style={{ marginBottom: "12px", padding: "8px", background: "#fff", borderRadius: "8px", border: "1px solid #ddd", textAlign: "center", fontWeight: "700", color: "#00693e" }}>
                 🏆 レース {currentRace} の予想結果
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
                 {ranked.map((horse, idx) => {
                   const score = getScore(horse.number);
                   const pct = maxScore > 0 ? (score / maxScore) * 100 : 0;
@@ -353,6 +386,16 @@
                       <div style={{ height: "5px", background: "#eee", borderRadius: "3px", overflow: "hidden", marginBottom: "8px" }}>
                         <div style={{ height: "100%", width: pct + "%", background: rc }} />
                       </div>
+                      {score > 0 && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                          {CATEGORIES.map(cat => {
+                            const cs = getCatScore(horse.number, cat);
+                            if (cs === 0) return null;
+                            const cc = CAT_COLOR[cat];
+                            return <span key={cat} style={{ fontSize: "10px", padding: "2px 7px", background: cc.light, border: "1px solid " + cc.bg, borderRadius: "3px", color: cc.bg, fontWeight: "700" }}>{cat} {cs.toFixed(1)}</span>;
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -389,7 +432,7 @@
           {confirmDialog && (
             <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <div style={{ background: "#fff", borderRadius: "12px", padding: "20px", width: "80vw", textAlign: "center" }}>
-                <div style={{ fontSize: "14px", fontWeight: "700", marginBottom: "20px", whiteSpace: "pre-wrap" }}>{confirmDialog.message}</div>
+                <div style={{ fontSize: "14px", fontWeight: "700", marginBottom: "20px" }}>{confirmDialog.message}</div>
                 <div style={{ display: "flex", gap: "10px" }}>
                   <button onClick={() => setConfirmDialog(null)} style={{ flex: 1, padding: "10px", background: "#eee", border: "none", borderRadius: "8px" }}>止める</button>
                   <button onClick={() => { confirmDialog.onOk(); setConfirmDialog(null); }} style={{ flex: 1, padding: "10px", background: "#c0392b", color: "#fff", border: "none", borderRadius: "8px" }}>実行</button>
