@@ -1,14 +1,12 @@
 <!DOCTYPE html>
 <html lang="ja">
-<link rel="apple-touch-icon" href="https://placehold.jp/140/00693e/ffffff/180x180.png?text=競&font=Noto%20Sans%20JP">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="競馬予想">
-
-
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>JRA 競馬予想スコアリング</title>
+    <link rel="apple-touch-icon" href="https://placehold.jp/140/00693e/ffffff/180x180.png?text=競">
+    <meta name="apple-mobile-web-app-title" content="競馬予想">
+    
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -25,24 +23,25 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        // 全項目の初期ウェイトを 1.0 に統一
         const DEFAULT_ITEMS = [
-            { id: "kinso",     label: "近走成績",    category: "能力",     weight: 2.5 },
-            { id: "time_idx",  label: "タイム指数",  category: "能力",     weight: 2.0 },
-            { id: "class",     label: "クラス実績",  category: "能力",     weight: 1.5 },
-            { id: "kyori",     label: "距離適性",    category: "適性",     weight: 2.0 },
-            { id: "course",    label: "コース適性",  category: "適性",     weight: 2.0 },
-            { id: "baba",      label: "馬場適性",    category: "適性",     weight: 1.5 },
-            { id: "chichi",    label: "血統(種牡馬)",category: "適性",     weight: 1.5 },
+            { id: "kinso",     label: "近走成績",    category: "能力",     weight: 1.0 },
+            { id: "time_idx",  label: "タイム指数",  category: "能力",     weight: 1.0 },
+            { id: "class",     label: "クラス実績",  category: "能力",     weight: 1.0 },
+            { id: "kyori",     label: "距離適性",    category: "適性",     weight: 1.0 },
+            { id: "course",    label: "コース適性",  category: "適性",     weight: 1.0 },
+            { id: "baba",      label: "馬場適性",    category: "適性",     weight: 1.0 },
+            { id: "chichi",    label: "血統(種牡馬)",category: "適性",     weight: 1.0 },
             { id: "haha",      label: "母父",        category: "適性",     weight: 1.0 },
-            { id: "chokyo",    label: "調教評価",    category: "状態",     weight: 2.0 },
-            { id: "paddock",   label: "パドック",    category: "状態",     weight: 2.5 },
-            { id: "maebashiri",label: "前走内容",    category: "状態",     weight: 2.5 },
+            { id: "chokyo",    label: "調教評価",    category: "状態",     weight: 1.0 },
+            { id: "paddock",   label: "パドック",    category: "状態",     weight: 1.0 },
+            { id: "maebashiri",label: "前走内容",    category: "状態",     weight: 1.0 },
             { id: "interval",  label: "レース間隔",  category: "状態",     weight: 1.0 },
-            { id: "ashishitsu",label: "脚質×展開",  category: "展開",     weight: 2.0 },
+            { id: "ashishitsu",label: "脚質×展開",  category: "展開",     weight: 1.0 },
             { id: "waku",      label: "枠順",        category: "展開",     weight: 1.0 },
-            { id: "kinryo",    label: "斤量",        category: "展開",     weight: 1.5 },
-            { id: "kishi",     label: "騎手",        category: "外部要因", weight: 2.0 },
-            { id: "trainer",   label: "厩舎・調教師",category: "外部要因", weight: 1.5 },
+            { id: "kinryo",    label: "斤量",        category: "展開",     weight: 1.0 },
+            { id: "kishi",     label: "騎手",        category: "外部要因", weight: 1.0 },
+            { id: "trainer",   label: "厩舎・調教師",category: "外部要因", weight: 1.0 },
             { id: "ninki",     label: "人気",        category: "外部要因", weight: 1.0 },
         ];
 
@@ -167,7 +166,7 @@
             };
 
             const fullReset = () => {
-                confirm("全てリセットします。\n項目設定も初期化されます。", () => {
+                confirm("全てリセットします。\n項目設定も初期値(1.0)に戻ります。", () => {
                     setRaceData({
                         1: { marks: {}, headCount: 10 },
                         2: { marks: {}, headCount: 10 },
@@ -293,7 +292,6 @@
                                         )}
                                     </div>
                                     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
-                                        {/* 上段 */}
                                         <div style={{ display: "flex", gap: "4px" }}>
                                             <button
                                                 onClick={() => setFocusCat(null)}
@@ -302,7 +300,6 @@
                                             <CatButton cat="能力" />
                                             <CatButton cat="適性" />
                                         </div>
-                                        {/* 下段 */}
                                         <div style={{ display: "flex", gap: "4px" }}>
                                             <CatButton cat="状態" />
                                             <CatButton cat="展開" />
@@ -420,29 +417,6 @@
                                         </div>
                                     );
                                 })}
-                            </div>
-
-                            <div style={{ background: "#fff", border: "1px solid #ddd", borderRadius: "10px", padding: "16px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-                                <div style={{ fontSize: "13px", fontWeight: "900", color: "#00693e", borderBottom: "2px solid #00693e", paddingBottom: "8px", marginBottom: "12px" }}>🎯 馬券の視点 (Race {currentRace})</div>
-                                {(() => {
-                                    const top = ranked.filter(h => getScore(h.number) > 0);
-                                    const lbl = h => h.number + "番（" + getScore(h.number).toFixed(1) + "点）";
-                                    const jiku = top[0], aite = top.slice(1, 4), ana = top.slice(4, 7);
-                                    return (
-                                        <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px" }}>
-                                            {[
-                                                { label: "◎ 軸馬", bg: "#c0392b", content: jiku ? lbl(jiku) : "未評価" },
-                                                { label: "○ 相手", bg: "#e67e22", content: aite.length > 0 ? aite.map(lbl).join("　") : "未評価" },
-                                                { label: "▲ 穴馬", bg: "#27ae60", content: ana.length > 0 ? ana.map(lbl).join("　") : "なし" },
-                                            ].map(row => (
-                                                <div key={row.label} style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
-                                                    <span style={{ background: row.bg, color: "#fff", borderRadius: "4px", padding: "2px 8px", fontWeight: "900", flexShrink: 0, fontSize: "12px" }}>{row.label}</span>
-                                                    <span style={{ lineHeight: 1.6 }}>{row.content}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    );
-                                })()}
                             </div>
                         </div>
                     )}
